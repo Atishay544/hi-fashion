@@ -50,7 +50,7 @@ export default function Header({ categories }: { categories: any[] }) {
   return (
     <>
       <header className="glassmorphism border-b border-border" style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
-        <div className="max-w-350 mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center gap-4">
+        <div className="max-w-350 mx-auto px-4 sm:px-6 lg:px-10 h-20 flex items-center gap-4">
 
           {/* Mobile menu toggle */}
           <button className="md:hidden text-gray-700 hover:text-black transition" onClick={() => setMobileOpen(!mobileOpen)}>
@@ -59,7 +59,7 @@ export default function Header({ categories }: { categories: any[] }) {
 
           {/* Logo */}
           <Link href="/" className="shrink-0">
-            <Image src="/logo.png" alt="Hi Fashion" width={160} height={56} className="h-12 w-auto object-contain" priority />
+            <Image src="/logo.png" alt="Hi Fashion" width={200} height={72} className="h-16 w-auto object-contain" priority />
           </Link>
 
           {/* Category nav (desktop) */}
