@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 
-type Tab = 'password' | 'otp' | 'phone'
+type Tab = 'password' | 'otp'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'password', label: 'Password' },
   { key: 'otp', label: 'Email OTP' },
-  { key: 'phone', label: 'Mobile OTP' },
+  // { key: 'phone', label: 'Mobile OTP' },  // disabled
 ]
 
 export default function LoginPage() {
@@ -20,7 +20,7 @@ export default function LoginPage() {
   const [tab, setTab] = useState<Tab>('password')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
+  // const [phone, setPhone] = useState('')  // disabled — mobile OTP
   const [password, setPassword] = useState('')
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', ''])
   const [isSignUp, setIsSignUp] = useState(false)
@@ -46,15 +46,6 @@ export default function LoginPage() {
     setIsSignUp(false)
     setName('')
     setOtpDigits(['', '', '', '', '', ''])
-  }
-
-  // ── Google ────────────────────────────────────────────────────────────────
-  async function handleGoogle() {
-    setLoading(true)
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${location.origin}/auth/callback` },
-    })
   }
 
   // ── Password ──────────────────────────────────────────────────────────────
@@ -104,27 +95,36 @@ export default function LoginPage() {
     router.push('/account')
   }
 
-  // ── Phone — send ──────────────────────────────────────────────────────────
-  async function handlePhoneOtp() {
-    setLoading(true); setError('')
-    const formatted = phone.startsWith('+') ? phone : `+91${phone}`
-    const { error } = await supabase.auth.signInWithOtp({ phone: formatted })
-    setLoading(false)
-    if (error) return setError(error.message)
-    setStep('otp')
-    setResendCountdown(60)
-    setSuccess(`OTP sent to +91 ${phone}`)
-  }
+  // ── Google (disabled) ─────────────────────────────────────────────────────
+  // async function handleGoogle() {
+  //   setLoading(true)
+  //   await supabase.auth.signInWithOAuth({
+  //     provider: 'google',
+  //     options: { redirectTo: `${location.origin}/auth/callback` },
+  //   })
+  // }
 
-  // ── Phone — verify ────────────────────────────────────────────────────────
-  async function handlePhoneVerify() {
-    setLoading(true); setError('')
-    const formatted = phone.startsWith('+') ? phone : `+91${phone}`
-    const { error } = await supabase.auth.verifyOtp({ phone: formatted, token: otp, type: 'sms' })
-    setLoading(false)
-    if (error) return setError(error.message)
-    router.push('/')
-  }
+  // ── Phone OTP — send (disabled) ───────────────────────────────────────────
+  // async function handlePhoneOtp() {
+  //   setLoading(true); setError('')
+  //   const formatted = phone.startsWith('+') ? phone : `+91${phone}`
+  //   const { error } = await supabase.auth.signInWithOtp({ phone: formatted })
+  //   setLoading(false)
+  //   if (error) return setError(error.message)
+  //   setStep('otp')
+  //   setResendCountdown(60)
+  //   setSuccess(`OTP sent to +91 ${phone}`)
+  // }
+
+  // ── Phone OTP — verify (disabled) ────────────────────────────────────────
+  // async function handlePhoneVerify() {
+  //   setLoading(true); setError('')
+  //   const formatted = phone.startsWith('+') ? phone : `+91${phone}`
+  //   const { error } = await supabase.auth.verifyOtp({ phone: formatted, token: otp, type: 'sms' })
+  //   setLoading(false)
+  //   if (error) return setError(error.message)
+  //   router.push('/')
+  // }
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden px-4 py-12">
@@ -231,16 +231,16 @@ export default function LoginPage() {
                     {tab === 'password' && step === 'input' && (isSignUp ? 'Create account' : 'Welcome back')}
                     {tab === 'otp' && step === 'input' && 'Sign in without password'}
                     {tab === 'otp' && step === 'otp' && 'Enter your code'}
-                    {tab === 'phone' && step === 'input' && 'Sign in with mobile'}
-                    {tab === 'phone' && step === 'otp' && 'Enter OTP'}
+                    {/* {tab === 'phone' && step === 'input' && 'Sign in with mobile'} */}
+                    {/* {tab === 'phone' && step === 'otp' && 'Enter OTP'} */}
                   </h2>
                   <p className="text-sm text-gray-400 mt-1">
                     {tab === 'password' && step === 'check-email' && `Verification link sent to ${email}`}
                     {tab === 'password' && step === 'input' && (isSignUp ? 'Fill in your details below' : 'Sign in to your account')}
                     {tab === 'otp' && step === 'input' && "We'll email you a 6-digit code — no password needed"}
                     {tab === 'otp' && step === 'otp' && `6-digit code sent to ${email}`}
-                    {tab === 'phone' && step === 'input' && 'Get an OTP on your mobile number'}
-                    {tab === 'phone' && step === 'otp' && `OTP sent to +91 ${phone}`}
+                    {/* {tab === 'phone' && step === 'input' && 'Get an OTP on your mobile number'} */}
+                    {/* {tab === 'phone' && step === 'otp' && `OTP sent to +91 ${phone}`} */}
                   </p>
                 </div>
 
@@ -269,14 +269,12 @@ export default function LoginPage() {
                       )}
                     </div>
 
-                    {/* ── Divider ── */}
+                    {/* ── Google (disabled) ──
                     <div className="flex items-center gap-3 py-1">
                       <div className="flex-1 h-px bg-gray-200" />
                       <span className="text-xs text-gray-400 font-medium">or</span>
                       <div className="flex-1 h-px bg-gray-200" />
                     </div>
-
-                    {/* ── Google ── */}
                     <motion.button onClick={handleGoogle} disabled={loading}
                       whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
                       className="w-full flex items-center justify-center gap-3 border-2 border-gray-200 rounded-2xl py-3.5 text-sm font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-all disabled:opacity-50">
@@ -288,6 +286,8 @@ export default function LoginPage() {
                       </svg>
                       Continue with Google
                     </motion.button>
+                    ── end Google disabled ── */}
+
                   </div>
                 )}
 
@@ -351,7 +351,7 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                {/* ── Phone: enter number ── */}
+                {/* ── Phone: enter number (disabled) ──
                 {tab === 'phone' && step === 'input' && (
                   <div className="space-y-3">
                     <div className="flex border-2 border-gray-200 rounded-2xl overflow-hidden focus-within:border-indigo-400 transition-colors">
@@ -366,8 +366,9 @@ export default function LoginPage() {
                     </PrimaryButton>
                   </div>
                 )}
+                ── end Phone enter number ── */}
 
-                {/* ── Phone: enter code ── */}
+                {/* ── Phone: enter code (disabled) ──
                 {tab === 'phone' && step === 'otp' && (
                   <div className="space-y-5">
                     <OtpBoxes digits={otpDigits} onChange={setOtpDigits} />
@@ -388,6 +389,7 @@ export default function LoginPage() {
                     </div>
                   </div>
                 )}
+                ── end Phone enter code ── */}
 
               </motion.div>
             </AnimatePresence>
