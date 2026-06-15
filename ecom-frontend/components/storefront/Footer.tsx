@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 
 type Category = { id: string; name: string; slug: string }
 
@@ -33,14 +32,8 @@ export default function Footer({ categories = [] }: { categories?: Category[] })
       <div className="max-w-350 mx-auto px-4 sm:px-6 lg:px-10 grid grid-cols-2 md:grid-cols-5 gap-8 mb-10">
         {/* Brand */}
         <div className="col-span-2 md:col-span-1">
-          <Link href="/" className="inline-flex items-center mb-3">
-            <Image
-              src="/logo.png"
-              alt="Hi Fashion"
-              width={48}
-              height={48}
-              className="h-12 w-auto object-contain"
-            />
+          <Link href="/" className="inline-block mb-3">
+            <span className="text-xl font-extrabold tracking-tight text-white">Hi Fashion&apos;s</span>
           </Link>
           <p className="text-sm leading-relaxed">India's trusted fashion store. Free shipping above ₹499.</p>
           <div className="flex gap-3 mt-4">
