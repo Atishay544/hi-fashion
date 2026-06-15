@@ -126,7 +126,7 @@ const orgJsonLd = {
       ],
       hasOfferCatalog: {
         "@type": "OfferCatalog",
-        name: "Marble Temples & Spiritual Decor",
+        name: "Fashion & Clothing",
         itemListElement: [
           { "@type": "OfferCatalog", name: "Men's Fashion", url: `${BASE_URL}/products` },
           { "@type": "OfferCatalog", name: "Women's Fashion", url: `${BASE_URL}/products` },
