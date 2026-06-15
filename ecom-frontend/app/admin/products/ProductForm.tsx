@@ -155,11 +155,15 @@ export default function ProductForm({ product, categories, initialVariants = [] 
               </div>
               <div className="sm:col-span-2">
                 <label className={LABEL}>Slug *</label>
-                <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-gray-900">
-                  <span className="px-3 py-2 text-xs text-gray-400 bg-gray-50 border-r border-gray-300 shrink-0">/products/</span>
-                  <input type="text" value={slug} onChange={e => setSlug(e.target.value)} required
-                    className="flex-1 px-3 py-2 text-sm font-mono focus:outline-none" />
+                <div className={`flex items-center border rounded-lg overflow-hidden ${isEdit ? 'border-gray-200 bg-gray-50' : 'border-gray-300 focus-within:ring-2 focus-within:ring-gray-900'}`}>
+                  <span className="px-3 py-2 text-xs text-gray-400 bg-gray-50 border-r border-gray-200 shrink-0">/products/</span>
+                  <input type="text" value={slug} required readOnly={isEdit}
+                    onChange={e => { if (!isEdit) setSlug(e.target.value) }}
+                    className={`flex-1 px-3 py-2 text-sm font-mono focus:outline-none ${isEdit ? 'text-gray-400 cursor-not-allowed' : ''}`} />
                 </div>
+                {isEdit && (
+                  <p className="text-[11px] text-amber-600 mt-1">Slug is locked after creation — changing it would break existing product URLs and SEO.</p>
+                )}
               </div>
               <div className="sm:col-span-2">
                 <label className={LABEL}>Description</label>

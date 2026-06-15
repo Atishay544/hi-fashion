@@ -83,7 +83,7 @@ export default function BannerForm() {
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >
-            <p className="font-semibold">{opt.label}</p>
+            <p className="font-semibold text-gray-900">{opt.label}</p>
             <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
           </button>
         ))}
