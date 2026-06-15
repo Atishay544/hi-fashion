@@ -59,7 +59,7 @@ export default function Header({ categories }: { categories: any[] }) {
 
           {/* Logo */}
           <Link href="/" className="shrink-0">
-            <Image src="/logo.png" alt="Hi Fashion" width={160} height={56} className="h-12 w-auto object-contain" priority />
+            <Image src="/logo.png" alt="Hi Fashion" width={160} height={40} className="h-10 w-auto object-contain" priority />
           </Link>
 
           {/* Category nav (desktop) */}
