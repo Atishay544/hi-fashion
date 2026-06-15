@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 import { useRouter, usePathname } from 'next/navigation'
 import { ShoppingCart, Heart, Search, User, Menu, X, ChevronDown } from 'lucide-react'
@@ -57,8 +58,8 @@ export default function Header({ categories }: { categories: any[] }) {
           </button>
 
           {/* Logo */}
-          <Link href="/" className="text-lg font-extrabold tracking-tight text-foreground shrink-0 hover:text-primary transition-colors duration-200">
-            Hi Fashion
+          <Link href="/" className="shrink-0">
+            <Image src="/logo.png" alt="Hi Fashion" width={120} height={40} className="h-9 w-auto object-contain" priority />
           </Link>
 
           {/* Category nav (desktop) */}
