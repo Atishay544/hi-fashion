@@ -7,7 +7,8 @@ import ImageUploader from './ImageUploader'
 import VideoUploader from './VideoUploader'
 
 interface Category { id: string; name: string }
-interface VariantRow { name: string; optionInput: string; options: string[] }
+interface VariantOption { value: string; images: string[] }
+interface VariantRow { name: string; optionInput: string; options: VariantOption[] }
 
 interface Product {
   id: string
@@ -53,6 +54,7 @@ export default function ProductForm({ product, categories, initialVariants = [] 
   const [images, setImages]         = useState<string[]>(product?.images ?? [])
   const [videoUrl, setVideoUrl]     = useState<string | null>(product?.video_url ?? null)
   const [variants, setVariants]     = useState<VariantRow[]>(initialVariants)
+  const [openOptionKey, setOpenOptionKey] = useState<string | null>(null)
   const [saving, setSaving]         = useState(false)
   const [error, setError]           = useState('')
 
@@ -60,7 +62,10 @@ export default function ProductForm({ product, categories, initialVariants = [] 
 
   // ── Variant helpers ──────────────────────────────────────────────────────
   function addVariant() { setVariants(v => [...v, { name: '', optionInput: '', options: [] }]) }
-  function removeVariant(i: number) { setVariants(v => v.filter((_, idx) => idx !== i)) }
+  function removeVariant(i: number) {
+    setVariants(v => v.filter((_, idx) => idx !== i))
+    setOpenOptionKey(null)
+  }
   function setVariantName(i: number, val: string) {
     setVariants(v => v.map((row, idx) => idx === i ? { ...row, name: val } : row))
   }
@@ -71,14 +76,27 @@ export default function ProductForm({ product, categories, initialVariants = [] 
     setVariants(v => v.map((row, idx) => {
       if (idx !== i) return row
       const trimmed = row.optionInput.trim()
-      if (!trimmed || row.options.includes(trimmed)) return { ...row, optionInput: '' }
-      return { ...row, options: [...row.options, trimmed], optionInput: '' }
+      if (!trimmed || row.options.some(o => o.value === trimmed)) return { ...row, optionInput: '' }
+      return { ...row, options: [...row.options, { value: trimmed, images: [] }], optionInput: '' }
     }))
   }
   function removeOption(varIdx: number, optIdx: number) {
+    const key = `${varIdx}-${optIdx}`
+    if (openOptionKey === key) setOpenOptionKey(null)
     setVariants(v => v.map((row, idx) =>
       idx === varIdx ? { ...row, options: row.options.filter((_, oi) => oi !== optIdx) } : row
     ))
+  }
+  function setOptionImages(varIdx: number, optIdx: number, images: string[]) {
+    setVariants(v => v.map((row, idx) =>
+      idx === varIdx
+        ? { ...row, options: row.options.map((opt, oi) => oi === optIdx ? { ...opt, images } : opt) }
+        : row
+    ))
+  }
+  function toggleOptionPanel(varIdx: number, optIdx: number) {
+    const key = `${varIdx}-${optIdx}`
+    setOpenOptionKey(prev => prev === key ? null : key)
   }
   function handleOptionKeyDown(e: React.KeyboardEvent, i: number) {
     if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addOption(i) }
@@ -231,7 +249,7 @@ export default function ProductForm({ product, categories, initialVariants = [] 
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Variations</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Size, Color, Material, etc.</p>
+                <p className="text-xs text-gray-400 mt-0.5">Size, Color, Material — click a chip to upload images per option</p>
               </div>
               <button type="button" onClick={addVariant}
                 className="flex items-center gap-1.5 text-xs font-medium text-gray-700 border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 transition">
@@ -257,32 +275,78 @@ export default function ProductForm({ product, categories, initialVariants = [] 
                         <X size={16} />
                       </button>
                     </div>
-                    <div>
-                      <div className="flex gap-2 mb-2">
+                    <div className="space-y-2">
+                      {/* Input row */}
+                      <div className="flex gap-2">
                         <input type="text" value={v.optionInput}
                           onChange={e => setVariantOptionInput(i, e.target.value)}
                           onKeyDown={e => handleOptionKeyDown(e, i)}
-                          placeholder="Type option + Enter  (e.g. S, M, L, XL)"
+                          placeholder="Type option + Enter  (e.g. Red, Blue, Green)"
                           className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900" />
                         <button type="button" onClick={() => addOption(i)}
                           className="text-xs font-medium border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-white bg-gray-50 transition">
                           Add
                         </button>
                       </div>
+
+                      {/* Option chips */}
                       {v.options.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
-                          {v.options.map((opt, oi) => (
-                            <span key={oi}
-                              className="inline-flex items-center gap-1 bg-gray-900 text-white text-xs px-2.5 py-1 rounded-full">
-                              {opt}
-                              <button type="button" onClick={() => removeOption(i, oi)}
-                                className="hover:text-red-300 transition ml-0.5">
-                                <X size={11} />
-                              </button>
-                            </span>
-                          ))}
+                          {v.options.map((opt, oi) => {
+                            const key = `${i}-${oi}`
+                            const isOpen = openOptionKey === key
+                            return (
+                              <span key={oi}
+                                className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full transition-colors ${
+                                  isOpen
+                                    ? 'bg-indigo-600 text-white ring-2 ring-indigo-300'
+                                    : 'bg-gray-900 text-white'
+                                }`}>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleOptionPanel(i, oi)}
+                                  className="flex items-center gap-1"
+                                  title="Click to add images for this option"
+                                >
+                                  {opt.value}
+                                  {opt.images.length > 0 && (
+                                    <span className={`ml-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center ${
+                                      isOpen ? 'bg-white text-indigo-700' : 'bg-indigo-500 text-white'
+                                    }`}>
+                                      {opt.images.length}
+                                    </span>
+                                  )}
+                                </button>
+                                <button type="button" onClick={() => removeOption(i, oi)}
+                                  className="hover:text-red-300 transition ml-0.5">
+                                  <X size={11} />
+                                </button>
+                              </span>
+                            )
+                          })}
                         </div>
                       )}
+
+                      {/* Per-option image upload panel */}
+                      {v.options.map((opt, oi) => {
+                        if (openOptionKey !== `${i}-${oi}`) return null
+                        return (
+                          <div key={`panel-${oi}`}
+                            className="border border-indigo-200 bg-indigo-50/40 rounded-xl p-3 space-y-2">
+                            <p className="text-xs font-semibold text-indigo-700">
+                              📸 Images for &ldquo;{opt.value}&rdquo;
+                              <span className="text-indigo-400 font-normal ml-1">
+                                — up to 5 · shown in gallery when shopper selects this option
+                              </span>
+                            </p>
+                            <ImageUploader
+                              value={opt.images}
+                              onChange={imgs => setOptionImages(i, oi, imgs)}
+                              maxImages={5}
+                            />
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 ))}

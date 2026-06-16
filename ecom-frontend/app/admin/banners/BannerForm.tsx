@@ -4,12 +4,13 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import ImageUploader from '../products/ImageUploader'
 
-type Style = 'overlay' | 'image_only' | 'solid'
+type Style = 'overlay' | 'image_only' | 'solid' | 'featured_card'
 
 const STYLE_OPTIONS: { value: Style; label: string; desc: string }[] = [
-  { value: 'overlay',    label: '🌫️ Smoky Overlay', desc: 'Image with dark overlay + optional text' },
-  { value: 'image_only', label: '🖼️ Image Only',    desc: 'Full image, no text, click = redirect' },
-  { value: 'solid',      label: '🎨 Solid Color',   desc: 'Solid background + text, no image needed' },
+  { value: 'overlay',       label: '🌫️ Smoky Overlay',  desc: 'Image with dark overlay + optional text' },
+  { value: 'image_only',    label: '🖼️ Image Only',      desc: 'Full image, no text, click = redirect' },
+  { value: 'solid',         label: '🎨 Solid Color',     desc: 'Solid background + text, no image needed' },
+  { value: 'featured_card', label: '🃏 Promo Card',      desc: 'For Him / For Her — 2-column home section' },
 ]
 
 export default function BannerForm() {
@@ -65,13 +66,14 @@ export default function BannerForm() {
   const showText   = style !== 'image_only'
   const showImage  = style !== 'solid'
   const showColors = style !== 'image_only'
+  const isPromoCard = style === 'featured_card'
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
       <h2 className="text-base font-semibold text-gray-800 mb-4">New Banner</h2>
 
       {/* Style picker */}
-      <div className="grid grid-cols-3 gap-2 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
         {STYLE_OPTIONS.map(opt => (
           <button
             key={opt.value}
@@ -134,6 +136,24 @@ export default function BannerForm() {
                   {linkText}
                 </span>
               )}
+            </div>
+          </div>
+        )}
+
+        {style === 'featured_card' && (
+          <div className="relative h-36 overflow-hidden rounded-xl flex" style={{ backgroundColor: bgColor }}>
+            {images[0] && (
+              <Image src={images[0]} alt="preview" fill className="object-cover object-right" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-transparent" />
+            <div className="relative z-10 p-4 flex flex-col justify-between w-1/2">
+              <p className="font-bold italic text-xl leading-tight drop-shadow-sm"
+                style={{ color: textColor, fontFamily: 'Georgia, serif' }}>
+                {title || 'For Him'}
+              </p>
+              <span className="inline-flex items-center gap-1 self-start bg-black text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full">
+                {linkText || 'View Collection'} →
+              </span>
             </div>
           </div>
         )}
@@ -228,6 +248,11 @@ export default function BannerForm() {
 
         {/* Sort + active + submit */}
         <div className="flex items-center gap-4 flex-wrap pt-1">
+          {isPromoCard && (
+            <p className="w-full text-xs text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2">
+              💡 <strong>Promo Cards</strong> appear in the &quot;For Him / For Her&quot; section on the home page. Create 2 cards — sort 0 = left, sort 1 = right.
+            </p>
+          )}
           <div className="flex items-center gap-2">
             <label className="text-xs font-medium text-gray-600">Sort</label>
             <input type="number" value={sortOrder} onChange={e => setSortOrder(e.target.value)}

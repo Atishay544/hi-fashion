@@ -30,7 +30,11 @@ export default async function EditProductPage({ params }: PageProps) {
   const initialVariants = (variantRows ?? []).map((v: any) => ({
     name:        v.name,
     optionInput: '',
-    options:     Array.isArray(v.options) ? v.options : [],
+    options:     (Array.isArray(v.options) ? v.options : []).map((o: any) =>
+      typeof o === 'string'
+        ? { value: o, images: [] }
+        : { value: String(o.value ?? ''), images: Array.isArray(o.images) ? o.images : [] }
+    ),
   }))
 
   return (

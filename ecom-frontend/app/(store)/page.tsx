@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { formatPrice } from '@/lib/utils'
 import { AnimatedGrid, AnimatedItem } from './AnimatedSectionDynamic'
 import AnnouncementBar from '@/components/storefront/AnnouncementBar'
+import FeaturedCards from '@/components/storefront/FeaturedCards'
 
 const HeroCarousel = dynamic(() => import('./HeroCarousel'), { ssr: true })
 
@@ -94,8 +95,9 @@ export default async function HomePage() {
   const { featured, deals } = await getDynamicHomeProducts()
   const bottomAnnouncement = await getBottomAnnouncement()
 
-  const heroSlides = banners.filter(b => b.sort_order === 0)
-  const dealBanner = banners.find(b => b.sort_order === 1) ?? null
+  const heroSlides    = banners.filter(b => b.sort_order === 0)
+  const dealBanner    = banners.find(b => b.sort_order === 1) ?? null
+  const featuredCards = banners.filter(b => b.display_style === 'featured_card')
 
   const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
   const homeJsonLd = {
@@ -176,6 +178,9 @@ export default async function HomePage() {
 
       {/* ── Bottom Announcement (sort 1) — below category section ── */}
       {bottomAnnouncement && <AnnouncementBar data={bottomAnnouncement} />}
+
+      {/* ── For Him / For Her promo cards (admin-managed) ── */}
+      {featuredCards.length > 0 && <FeaturedCards cards={featuredCards} />}
 
       {/* ── Featured Products ── */}
       {featured && featured.length > 0 && (

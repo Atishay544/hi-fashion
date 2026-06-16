@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatPrice } from '@/lib/utils'
 import { Star, Shield, RefreshCw, Truck, Leaf, Award, Users, Package } from 'lucide-react'
-import ProductGallery from './ProductGallery'
+import { ProductImageProvider, ConnectedGallery } from './ProductImageProvider'
 import VariantSelector from './VariantSelector'
 import AddToCartButton from './AddToCartButton'
 import ReviewsList from './ReviewsList'
@@ -367,10 +367,11 @@ export default async function ProductDetailPage({ params }: Props) {
         <span className="text-gray-600 truncate max-w-45">{product.name}</span>
       </nav>
 
+      <ProductImageProvider defaultImages={images}>
       <div className="grid md:grid-cols-[1fr_1fr] lg:grid-cols-[45%_1fr] gap-8 lg:gap-14">
-        {/* ── LEFT: Gallery ── */}
+        {/* ── LEFT: Gallery — driven by context (switches on color select) ── */}
         <div className="md:sticky md:top-24 md:self-start">
-          <ProductGallery images={images} name={product.name} videoUrl={videoUrl} />
+          <ConnectedGallery name={product.name} videoUrl={videoUrl} />
         </div>
 
         {/* ── RIGHT: Product Info ── */}
@@ -549,6 +550,7 @@ export default async function ProductDetailPage({ params }: Props) {
           )}
         </div>
       </div>
+      </ProductImageProvider>
 
       {/* Reviews — streamed after above-the-fold */}
       <Suspense fallback={
