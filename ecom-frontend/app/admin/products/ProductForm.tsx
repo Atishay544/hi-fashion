@@ -179,13 +179,13 @@ export default function ProductForm({ product, categories, initialVariants = [] 
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Pricing & Inventory</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
-                <label className={LABEL}>Price ($) *</label>
+                <label className={LABEL}>Price (₹) *</label>
                 <input type="number" min="0" step="0.01" value={price}
                   onChange={e => setPrice(e.target.value)} required placeholder="0.00"
                   className={INPUT} />
               </div>
               <div>
-                <label className={LABEL}>Compare At ($)</label>
+                <label className={LABEL}>Compare At (₹)</label>
                 <input type="number" min="0" step="0.01" value={comparePrice}
                   onChange={e => setCompare(e.target.value)} placeholder="0.00"
                   className={INPUT} />
@@ -220,7 +220,7 @@ export default function ProductForm({ product, categories, initialVariants = [] 
                   {Math.round((1 - parseFloat(price) / parseFloat(comparePrice)) * 100)}% OFF
                 </span>
                 <span className="text-green-600">
-                  · customer saves ${(parseFloat(comparePrice) - parseFloat(price)).toFixed(2)}
+                  · customer saves ₹{Math.round(parseFloat(comparePrice) - parseFloat(price))}
                 </span>
               </div>
             )}
