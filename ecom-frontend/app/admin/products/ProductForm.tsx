@@ -276,7 +276,7 @@ export default function ProductForm({ product, categories, initialVariants = [] 
                       </button>
                     </div>
                     <div className="space-y-2">
-                      {/* Input row */}
+                      {/* Add new option input */}
                       <div className="flex gap-2">
                         <input type="text" value={v.optionInput}
                           onChange={e => setVariantOptionInput(i, e.target.value)}
@@ -289,61 +289,52 @@ export default function ProductForm({ product, categories, initialVariants = [] 
                         </button>
                       </div>
 
-                      {/* Option chips */}
-                      {v.options.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {v.options.map((opt, oi) => {
-                            const key = `${i}-${oi}`
-                            const isOpen = openOptionKey === key
-                            return (
-                              <span key={oi}
-                                className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full transition-colors ${
-                                  isOpen
-                                    ? 'bg-indigo-600 text-white ring-2 ring-indigo-300'
-                                    : 'bg-gray-900 text-white'
-                                }`}>
-                                <button
-                                  type="button"
-                                  onClick={() => toggleOptionPanel(i, oi)}
-                                  className="flex items-center gap-1"
-                                  title="Click to add images for this option"
-                                >
-                                  {opt.value}
-                                  {opt.images.length > 0 && (
-                                    <span className={`ml-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center ${
-                                      isOpen ? 'bg-white text-indigo-700' : 'bg-indigo-500 text-white'
-                                    }`}>
-                                      {opt.images.length}
-                                    </span>
-                                  )}
-                                </button>
-                                <button type="button" onClick={() => removeOption(i, oi)}
-                                  className="hover:text-red-300 transition ml-0.5">
-                                  <X size={11} />
-                                </button>
-                              </span>
-                            )
-                          })}
-                        </div>
-                      )}
-
-                      {/* Per-option image upload panel */}
+                      {/* One row per option with its own image upload */}
                       {v.options.map((opt, oi) => {
-                        if (openOptionKey !== `${i}-${oi}`) return null
+                        const key = `${i}-${oi}`
+                        const isOpen = openOptionKey === key
                         return (
-                          <div key={`panel-${oi}`}
-                            className="border border-indigo-200 bg-indigo-50/40 rounded-xl p-3 space-y-2">
-                            <p className="text-xs font-semibold text-indigo-700">
-                              📸 Images for &ldquo;{opt.value}&rdquo;
-                              <span className="text-indigo-400 font-normal ml-1">
-                                — up to 5 · shown in gallery when shopper selects this option
+                          <div key={oi} className="border border-gray-200 rounded-xl bg-white overflow-hidden">
+                            {/* Option row */}
+                            <div className="flex items-center gap-3 px-3 py-2.5">
+                              <span className="flex-1 text-sm font-medium text-gray-800">{opt.value}</span>
+                              <span className="text-xs text-gray-400">
+                                {opt.images.length > 0
+                                  ? `${opt.images.length} photo${opt.images.length > 1 ? 's' : ''}`
+                                  : 'No photos'}
                               </span>
-                            </p>
-                            <ImageUploader
-                              value={opt.images}
-                              onChange={imgs => setOptionImages(i, oi, imgs)}
-                              maxImages={5}
-                            />
+                              <button
+                                type="button"
+                                onClick={() => toggleOptionPanel(i, oi)}
+                                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
+                                  isOpen
+                                    ? 'bg-indigo-600 text-white'
+                                    : opt.images.length > 0
+                                      ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
+                              >
+                                📸 {isOpen ? 'Close' : opt.images.length > 0 ? 'Edit Photos' : 'Add Photos'}
+                              </button>
+                              <button type="button" onClick={() => removeOption(i, oi)}
+                                className="text-gray-300 hover:text-red-500 transition p-1">
+                                <X size={14} />
+                              </button>
+                            </div>
+
+                            {/* Expandable image upload panel */}
+                            {isOpen && (
+                              <div className="border-t border-indigo-100 bg-indigo-50/50 px-3 py-3 space-y-2">
+                                <p className="text-xs text-indigo-600 font-medium">
+                                  Upload 2–5 photos for &ldquo;{opt.value}&rdquo; — these show in the gallery when shoppers select this option
+                                </p>
+                                <ImageUploader
+                                  value={opt.images}
+                                  onChange={imgs => setOptionImages(i, oi, imgs)}
+                                  maxImages={5}
+                                />
+                              </div>
+                            )}
                           </div>
                         )
                       })}
