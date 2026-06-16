@@ -1,13 +1,14 @@
 'use client'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle, ShoppingBag, UserPlus, AlertCircle } from 'lucide-react'
+import { CheckCircle, ShoppingBag, UserPlus, AlertCircle, Clock } from 'lucide-react'
 import { Suspense } from 'react'
 
 function SuccessContent() {
   const params    = useSearchParams()
   const orderId   = params.get('id')
   const failed    = params.get('payment') === 'failed'
+  const isUpi     = params.get('payment') === 'upi'
 
   if (failed) {
     return (
@@ -41,7 +42,9 @@ function SuccessContent() {
         </div>
         <h1 className="text-2xl font-bold text-gray-900">Order Placed!</h1>
         <p className="text-gray-500 text-sm">
-          Your order has been received and is being processed.
+          {isUpi
+            ? 'Your order is confirmed. Payment will be verified by end of day.'
+            : 'Your order has been received and is being processed.'}
         </p>
       </div>
 
@@ -53,6 +56,19 @@ function SuccessContent() {
             {orderId.slice(0, 8).toUpperCase()}
           </p>
           <p className="text-xs text-gray-400 mt-1.5">Save this for tracking your order</p>
+        </div>
+      )}
+
+      {/* UPI pending banner */}
+      {isUpi && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex gap-3">
+          <Clock size={20} className="text-amber-500 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-semibold text-amber-900 text-sm">Payment Verification Pending</p>
+            <p className="text-amber-700 text-sm leading-relaxed">
+              We have received your UTR. Our team will verify your payment and confirm your order by <strong>end of day</strong>. You will be notified once confirmed.
+            </p>
+          </div>
         </div>
       )}
 

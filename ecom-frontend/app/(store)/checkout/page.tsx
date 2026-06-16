@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import Script from 'next/script'
 import Link from 'next/link'
-import { Tag, CreditCard, Truck, Zap, Check, LogIn } from 'lucide-react'
+import { Tag, CreditCard, Truck, Zap, Check, LogIn, Smartphone } from 'lucide-react'
 
 declare global {
   interface Window { Razorpay: any }
@@ -23,7 +23,7 @@ interface Offer {
   type: string; upfront_pct: number | null; discount_pct: number | null
 }
 
-type PaymentMethod = 'online' | 'cod' | 'cod_upfront'
+type PaymentMethod = 'online' | 'cod' | 'cod_upfront' | 'upi'
 
 const EMPTY_ADDRESS: Address = { name: '', phone: '', line1: '', line2: '', city: '', state: '', pincode: '' }
 
@@ -44,6 +44,7 @@ export default function CheckoutPage() {
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('online')
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null)
+  const [utrNumber, setUtrNumber]         = useState('')
 
   useEffect(() => {
     fetch('/api/offers').then(r => r.json()).then(j => setOffers(j.data ?? []))
@@ -68,6 +69,11 @@ export default function CheckoutPage() {
   const grandTotal = Math.max(0, subtotal - discount)
 
   const codOffers = offers.filter(o => o.type === 'cod_upfront')
+  const UPI_ID  = process.env.NEXT_PUBLIC_UPI_ID  ?? ''
+  const UPI_NAME = process.env.NEXT_PUBLIC_UPI_NAME ?? 'Hi Fashions'
+  const upiLink  = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${grandTotal.toFixed(2)}&cu=INR&tn=Hi+Fashion+Order`
+  const qrUrl    = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiLink)}`
+
   const codBreakdown = paymentMethod === 'cod_upfront' && selectedOffer?.upfront_pct && selectedOffer?.discount_pct
     ? (() => {
         const upfront    = (grandTotal * selectedOffer.upfront_pct!) / 100
@@ -114,6 +120,11 @@ export default function CheckoutPage() {
       setError('Enter a valid email address'); return
     }
 
+    if (paymentMethod === 'upi') {
+      if (!utrNumber.trim()) { setError('Please enter your UTR / Transaction ID after paying'); return }
+      if (!/^[A-Za-z0-9]{6,24}$/.test(utrNumber.trim())) { setError('Enter a valid UTR number (6–24 alphanumeric characters)'); return }
+    }
+
     setError('')
     setLoading(true)
 
@@ -133,6 +144,7 @@ export default function CheckoutPage() {
         coupon_code:      couponResult?.code,
         payment_method:   paymentMethod,
         offer_id:         selectedOffer?.id ?? null,
+        utr_number:       paymentMethod === 'upi' ? utrNumber.trim().toUpperCase() : undefined,
       }, { headers })
 
       const successPath = user
@@ -142,6 +154,12 @@ export default function CheckoutPage() {
       if (res.payment_method === 'cod') {
         clearCart()
         router.push(successPath)
+        return
+      }
+
+      if (res.payment_method === 'upi') {
+        clearCart()
+        router.push(`/checkout/success?id=${res.order_id}&payment=upi`)
         return
       }
 
@@ -264,6 +282,14 @@ export default function CheckoutPage() {
                   subtitle="Pay when your order arrives at your doorstep"
                   badge={<span className="text-xs bg-orange-50 text-orange-700 border border-orange-200 rounded-full px-2 py-0.5 font-medium">No advance payment</span>}
                 />
+                <PaymentCard
+                  selected={paymentMethod === 'upi'}
+                  onClick={() => selectPaymentMethod('upi')}
+                  icon={<Smartphone size={20} className="text-purple-600" />}
+                  title="UPI Transfer"
+                  subtitle="Pay via GPay, PhonePe, Paytm, BHIM or any UPI app"
+                  badge={<span className="text-xs bg-purple-50 text-purple-700 border border-purple-200 rounded-full px-2 py-0.5 font-medium">No extra charges</span>}
+                />
                 {codOffers.map(offer => (
                   <PaymentCard
                     key={offer.id}
@@ -306,6 +332,47 @@ export default function CheckoutPage() {
                 </div>
               )}
             </div>
+
+            {/* UPI QR + UTR panel */}
+            {paymentMethod === 'upi' && (
+              <div className="border border-purple-200 rounded-2xl p-6 space-y-5">
+                <h2 className="font-semibold text-lg">Scan & Pay</h2>
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                  <div className="bg-white p-3 rounded-xl border border-gray-200 shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={qrUrl} alt="UPI QR Code" width={160} height={160} className="w-40 h-40" />
+                  </div>
+                  <ol className="space-y-2 text-sm text-gray-700 list-none">
+                    <li>1. Open <strong>GPay / PhonePe / Paytm</strong></li>
+                    <li>2. Scan QR or pay to UPI ID:</li>
+                    <li>
+                      <span className="inline-block font-mono bg-purple-50 border border-purple-200 rounded-lg px-3 py-1.5 text-purple-900 font-semibold select-all text-xs">
+                        {UPI_ID || 'UPI ID not configured'}
+                      </span>
+                    </li>
+                    <li>3. Pay exactly <strong>₹{grandTotal.toFixed(2)}</strong></li>
+                    <li>4. Copy the <strong>UTR / Transaction ID</strong> from your app</li>
+                    <li>5. Paste it below and place order</li>
+                  </ol>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">
+                    UTR / Transaction ID <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={utrNumber}
+                    onChange={e => setUtrNumber(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase())}
+                    placeholder="e.g. 421612345678"
+                    maxLength={24}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                  />
+                  <p className="text-xs text-gray-400 mt-1.5">
+                    Open your UPI app → Recent transactions → Copy the 12-digit UTR/Ref number
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Coupon */}
             <div className="border rounded-2xl p-6">
@@ -365,6 +432,7 @@ export default function CheckoutPage() {
                   {paymentMethod === 'online' && <><CreditCard size={14} className="text-blue-600" /><span>Pay online via Razorpay</span></>}
                   {paymentMethod === 'cod' && <><Truck size={14} className="text-orange-600" /><span>Cash on Delivery</span></>}
                   {paymentMethod === 'cod_upfront' && <><Zap size={14} className="text-green-600" /><span>Pay {formatPrice(codBreakdown?.upfront ?? 0)} now + {formatPrice(codBreakdown?.discounted ?? 0)} on delivery</span></>}
+                  {paymentMethod === 'upi' && <><Smartphone size={14} className="text-purple-600" /><span>UPI Transfer</span></>}
                 </div>
               </div>
 
@@ -376,13 +444,15 @@ export default function CheckoutPage() {
                   ? 'Processing…'
                   : paymentMethod === 'cod'
                     ? `Place Order — Pay ${formatPrice(grandTotal)} on Delivery`
-                    : paymentMethod === 'cod_upfront' && codBreakdown
-                      ? `Pay ${formatPrice(codBreakdown.upfront)} Now`
-                      : `Pay ${formatPrice(grandTotal)}`}
+                    : paymentMethod === 'upi'
+                      ? `Place Order — UPI ₹${grandTotal.toFixed(2)}`
+                      : paymentMethod === 'cod_upfront' && codBreakdown
+                        ? `Pay ${formatPrice(codBreakdown.upfront)} Now`
+                        : `Pay ${formatPrice(grandTotal)}`}
               </button>
 
               <p className="text-center text-xs text-gray-400 mt-3">
-                {paymentMethod === 'cod' ? 'Order confirmed instantly' : 'Secured by Razorpay'}
+                {paymentMethod === 'cod' ? 'Order confirmed instantly' : paymentMethod === 'upi' ? 'Payment verified by end of day' : 'Secured by Razorpay'}
               </p>
             </div>
           </div>

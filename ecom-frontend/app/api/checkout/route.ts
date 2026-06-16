@@ -6,7 +6,7 @@ import { sendOrderConfirmation, sendNewOrderAlert } from '@/lib/email'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { assertSameOrigin } from '@/lib/security/csrf'
 
-type PaymentMethod = 'online' | 'cod' | 'cod_upfront'
+type PaymentMethod = 'online' | 'cod' | 'cod_upfront' | 'upi'
 
 function getRazorpay() {
   return new Razorpay({
@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
     coupon_code,
     payment_method = 'online' as PaymentMethod,
     offer_id,
+    utr_number,
   } = body
 
   if (!Array.isArray(items) || items.length === 0)
@@ -63,9 +64,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Missing address field: ${f}` }, { status: 400 })
   }
 
-  const validPaymentMethods: PaymentMethod[] = ['online', 'cod', 'cod_upfront']
+  const validPaymentMethods: PaymentMethod[] = ['online', 'cod', 'cod_upfront', 'upi']
   if (!validPaymentMethods.includes(payment_method))
     return NextResponse.json({ error: 'Invalid payment method' }, { status: 400 })
+
+  // ── UPI: validate UTR ─────────────────────────────────────────────────────
+  if (payment_method === 'upi') {
+    if (!utr_number?.trim())
+      return NextResponse.json({ error: 'UTR number is required for UPI payment' }, { status: 400 })
+    const utr = utr_number.trim().toUpperCase()
+    if (!/^[A-Z0-9]{6,24}$/.test(utr))
+      return NextResponse.json({ error: 'Invalid UTR number format' }, { status: 400 })
+    const admin = createAdminClient()
+    const { data: existing } = await admin
+      .from('orders')
+      .select('id')
+      .filter('metadata->>utr_number', 'eq', utr)
+      .maybeSingle()
+    if (existing)
+      return NextResponse.json({ error: 'This UTR has already been used for another order' }, { status: 400 })
+  }
 
   // ── 3. Validate products + compute subtotal ───────────────────────────────
   const admin = createAdminClient()
@@ -192,10 +210,16 @@ export async function POST(req: NextRequest) {
   if (payment_method === 'cod') {
     orderMetadata.amount_on_delivery = total
   }
+  if (payment_method === 'upi') {
+    orderMetadata.utr_number = utr_number.trim().toUpperCase()
+  }
 
   // ── 6. Create order in Supabase ───────────────────────────────────────────
   const initialStatus = payment_method === 'cod' ? 'confirmed' : 'pending'
-  const paymentStatus = payment_method === 'cod' ? 'cod' : payment_method === 'cod_upfront' ? 'partial' : 'prepaid'
+  const paymentStatus = payment_method === 'cod' ? 'cod'
+    : payment_method === 'cod_upfront' ? 'partial'
+    : payment_method === 'upi' ? 'upi_pending'
+    : 'prepaid'
 
   const { data: order, error: orderErr } = await admin
     .from('orders')
@@ -318,6 +342,44 @@ export async function POST(req: NextRequest) {
     }).catch((e) => console.error('[email] new order alert failed:', e?.message ?? e))
 
     return NextResponse.json({ order_id: order.id, payment_method: 'cod' })
+  }
+
+  // ── 8b. UPI → reserve stock + send alerts, no Razorpay ───────────────────
+  if (payment_method === 'upi') {
+    await Promise.allSettled(
+      lineItems.map(li =>
+        admin.rpc('reserve_stock', { p_product_id: li.product_id, p_quantity: li.quantity })
+      )
+    )
+    if (validatedCouponCode) {
+      await admin.rpc('increment_coupon_uses', { p_code: validatedCouponCode }).catch(() => {})
+    }
+    const emailItems = lineItems.map(li => ({
+      name:       (li.snapshot as any).name,
+      quantity:   li.quantity,
+      unit_price: li.unit_price,
+    }))
+    const customerEmail = user?.email ?? guest_email ?? null
+    if (customerEmail) {
+      sendOrderConfirmation({
+        to:              customerEmail,
+        orderId:         order.id,
+        items:           emailItems,
+        subtotal, discount, total,
+        paymentMethod:   'upi',
+        shippingAddress: shipping_address,
+      }).catch((e) => console.error('[email] upi order confirmation failed:', e?.message ?? e))
+    }
+    sendNewOrderAlert({
+      orderId:        order.id,
+      customerEmail:  customerEmail ?? 'Guest',
+      items:          emailItems,
+      total,
+      paymentMethod:  `UPI Transfer — UTR: ${utr_number.trim().toUpperCase()}`,
+      shippingAddress: shipping_address,
+    }).catch((e) => console.error('[email] upi new order alert failed:', e?.message ?? e))
+
+    return NextResponse.json({ order_id: order.id, payment_method: 'upi' })
   }
 
   // ── 9. Online / COD-upfront → create Razorpay order ──────────────────────
