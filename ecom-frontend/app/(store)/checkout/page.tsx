@@ -425,6 +425,7 @@ export default function CheckoutPage() {
                   <span>Total</span>
                   <span>{formatPrice(grandTotal)}</span>
                 </div>
+                <p className="text-[11px] text-gray-400 pt-1">Prices inclusive of all taxes (GST)</p>
               </div>
 
               <div className="mt-3 pt-3 border-t">
