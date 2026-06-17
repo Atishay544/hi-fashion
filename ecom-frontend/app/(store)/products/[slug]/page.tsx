@@ -7,12 +7,11 @@ import Link from 'next/link'
 import { formatPrice } from '@/lib/utils'
 import { Star, Shield, RefreshCw, Truck, Leaf, Award, Users, Package } from 'lucide-react'
 import { ProductImageProvider, ConnectedGallery } from './ProductImageProvider'
-import VariantSelector from './VariantSelector'
-import AddToCartButton from './AddToCartButton'
+import ProductActions, { type StoreSku } from './ProductActions'
 import ReviewsList from './ReviewsList'
 import ReviewForm from './ReviewForm'
 import RecommendedProducts from './RecommendedProducts'
-import ProductOffers from './ProductOffers'
+import WishlistButton from '@/components/storefront/WishlistButton'
 
 export const revalidate = 3600 // 1h — on-demand invalidation via revalidateTag handles updates
 export const dynamicParams = true
@@ -75,6 +74,20 @@ const getProductVariants = unstable_cache(
     }))
   },
   ['product-variants'],
+  { revalidate: 3600, tags: ['products'] }
+)
+
+const getProductSkus = unstable_cache(
+  async (productId: string): Promise<StoreSku[]> => {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return []
+    const supabase = createPublicClient()
+    const { data } = await supabase
+      .from('product_skus')
+      .select('attributes, stock')
+      .eq('product_id', productId)
+    return (data ?? []).map((s: any) => ({ attributes: s.attributes as Record<string, string>, stock: Number(s.stock) }))
+  },
+  ['product-skus'],
   { revalidate: 3600, tags: ['products'] }
 )
 
@@ -269,8 +282,9 @@ export default async function ProductDetailPage({ params }: Props) {
   if (!product || product.is_active === false) notFound()
 
   // Only what's needed to render above-the-fold — fast parallel fetch
-  const [variants, offers, monthlySold] = await Promise.all([
+  const [variants, skus, offers, monthlySold] = await Promise.all([
     getProductVariants(product.id),
+    getProductSkus(product.id),
     getOffers(),
     getMonthlySold(product.id),
   ])
@@ -384,9 +398,12 @@ export default async function ProductDetailPage({ params }: Props) {
             </Link>
           )}
 
-          <h1 className="text-2xl lg:text-3xl font-bold leading-snug text-gray-900">
-            {product.name}
-          </h1>
+          <div className="flex items-start gap-3">
+            <h1 className="text-2xl lg:text-3xl font-bold leading-snug text-gray-900 flex-1">
+              {product.name}
+            </h1>
+            <WishlistButton productId={product.id} />
+          </div>
 
           {/* Price block */}
           <div>
@@ -435,28 +452,13 @@ export default async function ProductDetailPage({ params }: Props) {
             )
           })()}
 
-          {/* Variants */}
-          {variants.length > 0 && (
-            <div className="border-t border-gray-100 pt-5">
-              <VariantSelector variants={variants} />
-            </div>
-          )}
-
-          {/* Offers */}
-          <div className="border-t border-gray-100 pt-5">
-            <ProductOffers price={product.price} initialOffers={offers} />
-          </div>
-
-          {/* Add to Cart */}
-          <div className="border-t border-gray-100 pt-5">
-            <AddToCartButton product={{
-              id: product.id,
-              name: product.name,
-              price: product.price,
-              image: images[0] ?? null,
-              stock: product.stock,
-            }} />
-          </div>
+          {/* Variants + Offers + Add to Cart — unified client block for shared state */}
+          <ProductActions
+            product={{ id: product.id, name: product.name, price: product.price, image: images[0] ?? null, stock: product.stock }}
+            variants={variants}
+            skus={skus}
+            initialOffers={offers}
+          />
 
           {/* Product quality attributes — from metadata.attributes */}
           {(() => {

@@ -7,6 +7,7 @@ import { formatPrice } from '@/lib/utils'
 import { AnimatedGrid, AnimatedItem } from './AnimatedSectionDynamic'
 import AnnouncementBar from '@/components/storefront/AnnouncementBar'
 import FeaturedCards from '@/components/storefront/FeaturedCards'
+import WishlistButton from '@/components/storefront/WishlistButton'
 
 const HeroCarousel = dynamic(() => import('./HeroCarousel'), { ssr: true })
 
@@ -276,8 +277,8 @@ function ProductCard({ product, priority = false }: {
     : 0
 
   return (
-    <Link href={`/products/${product.slug}`}
-      className="group block bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-200 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-gray-200/60 transition-all duration-300 h-full">
+    <div className="group relative bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-200 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-gray-200/60 transition-all duration-300 h-full">
+      <Link href={`/products/${product.slug}`} className="block">
       <div className="aspect-3/4 bg-gray-50 relative overflow-hidden">
         {image ? (
           <Image
@@ -310,6 +311,13 @@ function ProductCard({ product, priority = false }: {
           )}
         </div>
       </div>
-    </Link>
+      </Link>
+      {/* Wishlist toggle — outside Link so click doesn't navigate */}
+      <WishlistButton
+        productId={product.id}
+        size="sm"
+        className="absolute top-2.5 right-2.5 shadow-sm"
+      />
+    </div>
   )
 }

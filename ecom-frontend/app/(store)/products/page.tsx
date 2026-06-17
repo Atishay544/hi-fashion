@@ -7,6 +7,7 @@ import ProductFilters from './ProductFilters'
 import MobileFilterDrawer from './MobileFilterDrawer'
 import SortSelect from './SortSelect'
 import ProductSkeletonGrid from '@/components/ui/ProductSkeleton'
+import WishlistButton from '@/components/storefront/WishlistButton'
 
 export const revalidate = 30
 
@@ -153,30 +154,33 @@ function ProductCard({ product }: { product: any }) {
     ? Math.round((1 - product.price / product.compare_price) * 100) : 0
 
   return (
-    <Link href={`/products/${product.slug}`} className="group">
-      <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-3 relative">
-        {image
-          ? <Image src={image} alt={product.name} fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="object-cover group-hover:scale-105 transition"
-              placeholder="blur"
-              blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" />
-          : <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">📦</div>
-        }
-        {discount > 0 && (
-          <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-            -{discount}%
-          </span>
-        )}
-      </div>
-      <p className="text-sm font-medium line-clamp-2 mb-1">{product.name}</p>
-      <div className="flex items-center gap-2">
-        <span className="font-bold">{formatPrice(product.price)}</span>
-        {product.compare_price && (
-          <span className="text-sm text-gray-400 line-through">{formatPrice(product.compare_price)}</span>
-        )}
-      </div>
-    </Link>
+    <div className="group relative">
+      <Link href={`/products/${product.slug}`} className="block">
+        <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-3 relative">
+          {image
+            ? <Image src={image} alt={product.name} fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                className="object-cover group-hover:scale-105 transition"
+                placeholder="blur"
+                blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" />
+            : <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">📦</div>
+          }
+          {discount > 0 && (
+            <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+              -{discount}%
+            </span>
+          )}
+        </div>
+        <p className="text-sm font-medium line-clamp-2 mb-1">{product.name}</p>
+        <div className="flex items-center gap-2">
+          <span className="font-bold">{formatPrice(product.price)}</span>
+          {product.compare_price && (
+            <span className="text-sm text-gray-400 line-through">{formatPrice(product.compare_price)}</span>
+          )}
+        </div>
+      </Link>
+      <WishlistButton productId={product.id} size="sm" className="absolute top-2 right-2 shadow-sm" />
+    </div>
   )
 }
 

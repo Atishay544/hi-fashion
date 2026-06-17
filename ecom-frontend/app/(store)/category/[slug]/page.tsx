@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { formatPrice } from '@/lib/utils'
+import WishlistButton from '@/components/storefront/WishlistButton'
 
 export const revalidate = 3600
 export const dynamicParams = true
@@ -163,28 +164,31 @@ export default async function CategoryPage({ params, searchParams }: Props) {
           {products.map((p: any) => {
             const discount = p.compare_price ? Math.round((1 - p.price / p.compare_price) * 100) : 0
             return (
-              <Link key={p.id} href={`/products/${p.slug}`} className="group">
-                <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-2 relative">
-                  {p.images?.[0]
-                    ? <Image
-                        src={p.images[0]} alt={p.name} fill
-                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                        className="object-cover group-hover:scale-105 transition"
-                        placeholder="blur"
-                        blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" />
-                    : <div className="w-full h-full flex items-center justify-center text-4xl text-gray-300">📦</div>}
-                  {discount > 0 && (
-                    <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                      -{discount}%
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm font-medium line-clamp-2">{p.name}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="font-bold text-sm">{formatPrice(p.price)}</span>
-                  {p.compare_price && <span className="text-xs text-gray-400 line-through">{formatPrice(p.compare_price)}</span>}
-                </div>
-              </Link>
+              <div key={p.id} className="group relative">
+                <Link href={`/products/${p.slug}`} className="block">
+                  <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-2 relative">
+                    {p.images?.[0]
+                      ? <Image
+                          src={p.images[0]} alt={p.name} fill
+                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                          className="object-cover group-hover:scale-105 transition"
+                          placeholder="blur"
+                          blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" />
+                      : <div className="w-full h-full flex items-center justify-center text-4xl text-gray-300">📦</div>}
+                    {discount > 0 && (
+                      <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        -{discount}%
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm font-medium line-clamp-2">{p.name}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="font-bold text-sm">{formatPrice(p.price)}</span>
+                    {p.compare_price && <span className="text-xs text-gray-400 line-through">{formatPrice(p.compare_price)}</span>}
+                  </div>
+                </Link>
+                <WishlistButton productId={p.id} size="sm" className="absolute top-2 right-2 shadow-sm" />
+              </div>
             )
           })}
         </div>
