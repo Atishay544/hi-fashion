@@ -41,7 +41,7 @@ export default function WishlistButton({ productId, size = 'md', className = '' 
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      router.push('/auth/login?next=' + encodeURIComponent(window.location.pathname))
+      router.push('/login?next=' + encodeURIComponent(window.location.pathname))
       return
     }
 

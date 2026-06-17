@@ -345,14 +345,20 @@ export default function ProductForm({ product, categories, initialVariants = [],
                     </div>
                   </div>
                 ))}
+
+                {/* Stock per combination — shown inside Variations card once options exist */}
+                {variants.some(v => v.name.trim() && v.options.length > 0) && (
+                  <div className="mt-4 border-t border-gray-200 pt-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Step 2 — Set Stock per Option</span>
+                      <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Required</span>
+                    </div>
+                    <SkuMatrix variants={variants} value={skus} onChange={setSkus} />
+                  </div>
+                )}
               </div>
             )}
           </div>
-
-          {/* SKU stock matrix — appears once variants with options exist */}
-          {variants.some(v => v.name.trim() && v.options.length > 0) && (
-            <SkuMatrix variants={variants} value={skus} onChange={setSkus} />
-          )}
         </div>
 
         {/* ── RIGHT COLUMN ── */}

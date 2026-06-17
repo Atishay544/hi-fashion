@@ -66,54 +66,57 @@ export default function SkuMatrix({ variants, value, onChange }: Props) {
   const totalStock = rows.reduce((s, r) => s + r.stock, 0)
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+    <div className="space-y-3">
+      {/* Total badge */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Stock per Combination</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Set how many pieces you have for each {variantNames.join(' + ')} combination
-          </p>
-        </div>
+        <p className="text-xs text-gray-500">
+          {variantNames.length === 1
+            ? `Enter pieces available for each ${variantNames[0]}`
+            : `Enter pieces available per ${variantNames.join(' + ')} combination`}
+        </p>
         <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-          {totalStock} total
+          {totalStock} pcs total
         </span>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr className="border-b border-gray-100">
+            <tr className="border-b border-gray-100 bg-gray-50">
               {variantNames.map(name => (
-                <th key={name} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2 pr-4">
+                <th key={name} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-2.5">
                   {name}
                 </th>
               ))}
-              <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2 w-28">
-                Stock (pcs)
+              <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-2.5 w-32">
+                Pieces in stock
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody className="divide-y divide-gray-100">
             {rows.map(row => {
               const key = comboKey(row.attributes)
               return (
-                <tr key={key} className="hover:bg-gray-50 transition-colors">
+                <tr key={key} className={`hover:bg-gray-50 transition-colors ${row.stock === 0 ? 'bg-red-50/30' : ''}`}>
                   {variantNames.map(name => (
-                    <td key={name} className="py-2 pr-4">
-                      <span className="inline-block bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-1 rounded-full">
+                    <td key={name} className="px-4 py-2.5">
+                      <span className="inline-block bg-gray-100 text-gray-700 text-xs font-semibold px-2.5 py-1 rounded-full">
                         {row.attributes[name]}
                       </span>
                     </td>
                   ))}
-                  <td className="py-2">
+                  <td className="px-4 py-2.5">
                     <div className="flex justify-end">
                       <input
                         type="number"
                         min="0"
                         step="1"
-                        value={row.stock}
+                        value={row.stock === 0 ? '' : row.stock}
+                        placeholder="0"
                         onChange={e => updateStock(key, Math.max(0, parseInt(e.target.value, 10) || 0))}
-                        className="w-24 text-right border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+                        className={`w-28 text-right border rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gray-900 ${
+                          row.stock === 0 ? 'border-red-200 bg-red-50 placeholder-red-300' : 'border-gray-300'
+                        }`}
                       />
                     </div>
                   </td>
@@ -126,7 +129,7 @@ export default function SkuMatrix({ variants, value, onChange }: Props) {
 
       {rows.some(r => r.stock === 0) && (
         <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-          Combinations with 0 stock will show as &ldquo;Out of Stock&rdquo; on the product page.
+          ⚠ Options with 0 pieces will show as &ldquo;Out of Stock&rdquo; on the product page.
         </p>
       )}
     </div>
