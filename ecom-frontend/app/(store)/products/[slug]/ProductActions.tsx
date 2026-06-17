@@ -65,25 +65,20 @@ export default function ProductActions({ product, variants, skus, initialOffers 
         <ProductOffers price={product.price} initialOffers={initialOffers} />
       </div>
 
-      <div className="border-t border-gray-100 pt-5">
-        {variants.length > 0 && !allSelected ? (
-          <div className="space-y-2">
-            <button
-              disabled
-              className="w-full py-3 rounded-xl bg-gray-100 text-gray-400 font-semibold cursor-not-allowed text-sm"
-            >
-              Please select {unselectedVariants.join(' & ')} to add to cart
-            </button>
-          </div>
-        ) : (
-          <AddToCartButton
-            product={{ ...product, stock: effectiveStock }}
-            variantAttributes={allSelected ? selected : undefined}
-            skuLabel={allSelected && variants.length > 0
-              ? variantNames.map(n => selected[n]).join(' / ')
-              : undefined}
-          />
+      <div className="border-t border-gray-100 pt-5 space-y-2">
+        {variants.length > 0 && !allSelected && (
+          <p className="text-sm text-red-500 font-medium">
+            Please select {unselectedVariants.join(' & ')} before adding to cart
+          </p>
         )}
+        <AddToCartButton
+          product={{ ...product, stock: effectiveStock }}
+          variantAttributes={allSelected ? selected : undefined}
+          skuLabel={allSelected && variants.length > 0
+            ? variantNames.map(n => selected[n]).join(' / ')
+            : undefined}
+          requiresSelection={variants.length > 0 && !allSelected}
+        />
       </div>
     </>
   )

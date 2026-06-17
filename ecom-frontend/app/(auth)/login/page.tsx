@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import { Eye, EyeOff } from 'lucide-react'
 
 type Tab = 'password' | 'otp'
 
@@ -459,6 +460,34 @@ function OtpBoxes({ digits, onChange }: { digits: string[]; onChange: (d: string
 function InputField({ type, placeholder, value, onChange }: {
   type: string; placeholder: string; value: string; onChange: (v: string) => void
 }) {
+  const [showPw, setShowPw] = useState(false)
+  const isPassword = type === 'password'
+
+  if (isPassword) {
+    return (
+      <div className="relative">
+        <motion.input
+          type={showPw ? 'text' : 'password'}
+          placeholder={placeholder}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          whileFocus={{ scale: 1.005 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3.5 pr-12 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-indigo-400 transition-colors bg-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_white]"
+        />
+        <button
+          type="button"
+          onClick={() => setShowPw(v => !v)}
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
+          tabIndex={-1}
+          aria-label={showPw ? 'Hide password' : 'Show password'}
+        >
+          {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
+        </button>
+      </div>
+    )
+  }
+
   return (
     <motion.input
       type={type}

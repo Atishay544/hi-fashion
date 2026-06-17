@@ -9,9 +9,10 @@ interface Props {
   product: Product
   variantAttributes?: Record<string, string>
   skuLabel?: string
+  requiresSelection?: boolean
 }
 
-export default function AddToCartButton({ product, variantAttributes, skuLabel }: Props) {
+export default function AddToCartButton({ product, variantAttributes, skuLabel, requiresSelection }: Props) {
   const addItem = useCartStore(s => s.addItem)
   const [added, setAdded] = useState(false)
   const [qty, setQty]     = useState(1)
@@ -19,6 +20,7 @@ export default function AddToCartButton({ product, variantAttributes, skuLabel }
   const outOfStock = product.stock === 0
 
   function handleAdd() {
+    if (requiresSelection) return
     addItem({
       id:                product.id,
       name:              product.name,
@@ -37,6 +39,18 @@ export default function AddToCartButton({ product, variantAttributes, skuLabel }
       <button disabled className="w-full py-3 rounded-xl bg-gray-200 text-gray-400 font-semibold cursor-not-allowed flex items-center justify-center gap-2">
         <AlertCircle size={16} />
         {variantAttributes ? 'This combination is out of stock' : 'Out of Stock'}
+      </button>
+    )
+  }
+
+  // Variant exists but none selected — show button only, no qty stepper
+  if (requiresSelection) {
+    return (
+      <button
+        onClick={handleAdd}
+        className="w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 bg-black text-white hover:bg-gray-800 transition-all"
+      >
+        <ShoppingCart size={18} /> Add to Cart
       </button>
     )
   }
