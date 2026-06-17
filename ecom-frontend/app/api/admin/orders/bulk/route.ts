@@ -1,7 +1,5 @@
 import { adminGuard } from '@/lib/security/admin-guard'
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/admin'
-import { createServerClient } from '@/lib/supabase/server'
 import { revalidateTag } from 'next/cache'
 
 const ALLOWED_STATUSES = new Set([
@@ -9,10 +7,10 @@ const ALLOWED_STATUSES = new Set([
   'shipped', 'delivered', 'cancelled', 'refunded',
 ])
 
-
 export async function PATCH(req: NextRequest) {
-  const admin = await requireAdmin()
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const guard = await adminGuard(req)
+  if (guard instanceof NextResponse) return guard
+  const { admin } = guard
 
   const body = await req.json()
   const { ids, status } = body
@@ -35,5 +33,9 @@ export async function PATCH(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
   revalidateTag('orders')
+  revalidateTag('admin-orders')
+  revalidateTag('admin-dashboard')
+  revalidateTag('admin-delivery')
+
   return NextResponse.json({ updated: count ?? ids.length })
 }

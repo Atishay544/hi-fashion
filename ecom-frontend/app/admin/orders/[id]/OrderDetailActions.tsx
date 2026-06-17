@@ -9,13 +9,16 @@ interface Props {
   orderId: string
   currentStatus: string
   currentTracking: string
+  utrNumber?: string | null
+  paymentStatus?: string | null
 }
 
-export default function OrderDetailActions({ orderId, currentStatus, currentTracking }: Props) {
+export default function OrderDetailActions({ orderId, currentStatus, currentTracking, utrNumber, paymentStatus }: Props) {
   const router = useRouter()
   const [status, setStatus] = useState(currentStatus)
   const [tracking, setTracking] = useState(currentTracking)
   const [saving, setSaving] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const [message, setMessage] = useState('')
 
   async function handleSave() {
@@ -38,9 +41,60 @@ export default function OrderDetailActions({ orderId, currentStatus, currentTrac
     }
   }
 
+  async function handleConfirmUpi() {
+    if (!confirm(`Confirm UPI payment with UTR: ${utrNumber}?\n\nThis will mark the order as Confirmed and payment as Prepaid.`)) return
+    setConfirming(true)
+    setMessage('')
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'confirmed', payment_status: 'prepaid' }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Confirmation failed')
+      setStatus('confirmed')
+      setMessage('UPI payment confirmed. Order is now Confirmed.')
+      router.refresh()
+    } catch (e: any) {
+      setMessage(`Error: ${e.message}`)
+    } finally {
+      setConfirming(false)
+    }
+  }
+
+  const isUpiPending = paymentStatus === 'upi_pending'
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
       <h2 className="text-base font-semibold text-gray-800 mb-4">Update Order</h2>
+
+      {/* UPI confirmation panel */}
+      {utrNumber && (
+        <div className={`mb-5 rounded-xl p-4 border ${isUpiPending ? 'bg-purple-50 border-purple-300' : 'bg-green-50 border-green-300'}`}>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-2 ${isUpiPending ? 'text-purple-700' : 'text-green-700'}">
+            {isUpiPending ? 'UPI Payment — Awaiting Verification' : 'UPI Payment — Confirmed'}
+          </p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div>
+              <p className="text-xs text-gray-500 mb-0.5">UTR / Transaction ID</p>
+              <p className="font-mono font-bold text-lg tracking-wider text-gray-900">{utrNumber}</p>
+            </div>
+            {isUpiPending && (
+              <button
+                onClick={handleConfirmUpi}
+                disabled={confirming}
+                className="ml-auto px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-colors"
+              >
+                {confirming ? 'Confirming…' : 'Confirm Payment'}
+              </button>
+            )}
+            {!isUpiPending && (
+              <span className="ml-auto text-green-700 font-semibold text-sm">Payment Confirmed</span>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         <div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 const ALL_STATUSES = [
   'pending',
@@ -47,6 +48,7 @@ const PM_BADGES: Record<string, { label: string; cls: string }> = {
   online:      { label: 'Online',      cls: 'bg-blue-100 text-blue-700' },
   cod:         { label: 'COD',         cls: 'bg-orange-100 text-orange-700' },
   cod_upfront: { label: 'COD Upfront', cls: 'bg-teal-100 text-teal-700' },
+  upi:         { label: 'UPI',         cls: 'bg-purple-100 text-purple-700' },
 }
 
 type SortKey = 'id' | 'customerName' | 'total' | 'status' | 'payment' | 'created_at'
@@ -62,6 +64,7 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
 }
 
 export default function BulkActions({ initialOrders, statusFilter, searchQuery }: Props) {
+  const router = useRouter()
   const [orders, setOrders]       = useState<Order[]>(initialOrders)
   const [selected, setSelected]   = useState<Set<string>>(new Set())
   const [bulkStatus, setBulkStatus] = useState('')
@@ -144,6 +147,7 @@ export default function BulkActions({ initialOrders, statusFilter, searchQuery }
       )
       setSelected(new Set())
       setBulkStatus('')
+      router.refresh()
     } catch (e: any) {
       setError(e.message ?? 'Bulk update failed')
     } finally {
@@ -225,10 +229,15 @@ export default function BulkActions({ initialOrders, statusFilter, searchQuery }
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      {pmBadge
-                        ? <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${pmBadge.cls}`}>{pmBadge.label}</span>
-                        : <span className="text-gray-300 text-xs">—</span>
-                      }
+                      <div className="flex flex-col gap-0.5">
+                        {pmBadge
+                          ? <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${pmBadge.cls}`}>{pmBadge.label}</span>
+                          : <span className="text-gray-300 text-xs">—</span>
+                        }
+                        {order.payment_status === 'upi_pending' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Unverified</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       {order.delivery_awb ? (

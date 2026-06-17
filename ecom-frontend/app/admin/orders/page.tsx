@@ -33,7 +33,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
   await requireAdmin()
 
   const params       = await searchParams
-  const statusFilter = params.status === 'all' ? '' : (params.status ?? 'confirmed')
+  const statusFilter = (params.status === 'all' || !params.status) ? '' : params.status
   const searchQuery  = params.q ?? ''
   const datePreset   = params.date ?? ''
   const page         = Math.max(1, parseInt(params.page ?? '1', 10))
@@ -52,12 +52,12 @@ export default async function OrdersPage({ searchParams }: PageProps) {
       {/* Date preset filters */}
       <div className="flex flex-wrap gap-2 mb-3">
         <Link
-          href={`/admin/orders?status=${params.status ?? 'confirmed'}`}
+          href={`/admin/orders${params.status ? `?status=${params.status}` : ''}`}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${!datePreset ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'}`}
         >All time</Link>
         {Object.entries(DATE_PRESETS).map(([key, label]) => (
           <Link key={key}
-            href={`/admin/orders?status=${params.status ?? 'confirmed'}&date=${key}`}
+            href={`/admin/orders?${params.status ? `status=${params.status}&` : ''}date=${key}`}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${datePreset === key ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'}`}
           >{label}</Link>
         ))}
@@ -66,9 +66,9 @@ export default async function OrdersPage({ searchParams }: PageProps) {
       {/* Status filter tabs */}
       <div className="flex flex-wrap gap-2 mb-4">
         <Link
-          href={`/admin/orders?status=all${datePreset ? `&date=${datePreset}` : ''}`}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${params.status === 'all' ? 'bg-gray-900 text-white' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
-        >All</Link>
+          href={`/admin/orders${datePreset ? `?date=${datePreset}` : ''}`}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${!params.status || params.status === 'all' ? 'bg-gray-900 text-white' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+        >All ({Object.values(countMap).reduce((a, b) => a + b, 0)})</Link>
         {ALL_STATUSES.map(s => {
           const n = countMap[s] ?? 0
           return (

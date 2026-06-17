@@ -5,6 +5,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { sendOrderConfirmation, sendNewOrderAlert } from '@/lib/email'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { assertSameOrigin } from '@/lib/security/csrf'
+import { revalidateTag } from 'next/cache'
 
 type PaymentMethod = 'online' | 'cod' | 'cod_upfront' | 'upi'
 
@@ -125,23 +126,56 @@ export async function POST(req: NextRequest) {
   if (prodErr || !products || products.length !== productIds.length)
     return NextResponse.json({ error: 'One or more products are unavailable' }, { status: 400 })
 
+  // Fetch SKUs for all products in cart (needed for variant stock validation)
+  const { data: allSkus } = await admin
+    .from('product_skus')
+    .select('id, product_id, attributes, stock')
+    .in('product_id', productIds)
+
+  function skuAttrKey(attrs: Record<string, string>) {
+    return Object.entries(attrs)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${k}=${v}`)
+      .join('|')
+  }
+
   const productMap = new Map(products.map(p => [p.id, p]))
   let subtotal = 0
-  const lineItems: { product_id: string; quantity: number; unit_price: number; total: number; snapshot: object }[] = []
+  const lineItems: { product_id: string; sku_id: string | null; quantity: number; unit_price: number; total: number; snapshot: object }[] = []
 
   for (const item of items) {
     const product = productMap.get(item.product_id)
     if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 400 })
-    if (product.stock !== null && product.stock < item.quantity)
-      return NextResponse.json({ error: `Insufficient stock for: ${product.name}` }, { status: 400 })
+
+    // If item has variant attributes, validate against SKU stock
+    let matchedSkuId: string | null = null
+    if (item.variant_attributes && typeof item.variant_attributes === 'object' && Object.keys(item.variant_attributes).length > 0) {
+      const key = skuAttrKey(item.variant_attributes)
+      const sku = (allSkus ?? []).find(
+        s => s.product_id === item.product_id && skuAttrKey(s.attributes) === key
+      )
+      if (!sku) return NextResponse.json({ error: `Variant not found for: ${product.name}` }, { status: 400 })
+      if (sku.stock < item.quantity) return NextResponse.json({ error: `Insufficient stock for: ${product.name} (${Object.values(item.variant_attributes).join(' / ')})` }, { status: 400 })
+      matchedSkuId = sku.id
+    } else {
+      // No variant — use product-level stock
+      if (product.stock !== null && product.stock < item.quantity)
+        return NextResponse.json({ error: `Insufficient stock for: ${product.name}` }, { status: 400 })
+    }
+
     const lineTotal = product.price * item.quantity
     subtotal += lineTotal
     lineItems.push({
       product_id: item.product_id,
+      sku_id:     matchedSkuId,
       quantity:   item.quantity,
       unit_price: product.price,
       total:      lineTotal,
-      snapshot:   { name: product.name, price: product.price, image: product.images?.[0] ?? null, slug: product.slug, weight_grams: (product as any).weight_grams ?? 500 },
+      snapshot:   {
+        name: product.name, price: product.price, image: product.images?.[0] ?? null,
+        slug: product.slug, weight_grams: (product as any).weight_grams ?? 500,
+        variant: item.variant_attributes ?? null,
+      },
     })
   }
 
@@ -305,13 +339,23 @@ export async function POST(req: NextRequest) {
     })().catch(() => {})
   }
 
+  // Helper: deduct product-level + SKU-level stock for all line items
+  async function deductStock() {
+    const tasks: Promise<unknown>[] = lineItems.map(li =>
+      admin.rpc('reserve_stock', { p_product_id: li.product_id, p_quantity: li.quantity })
+    )
+    for (const li of lineItems) {
+      if (li.sku_id) {
+        tasks.push(admin.rpc('decrement_sku_stock', { p_sku_id: li.sku_id, p_quantity: li.quantity }))
+      }
+    }
+    await Promise.allSettled(tasks)
+  }
+
   // ── 8. COD → done, no Razorpay needed ────────────────────────────────────
   if (payment_method === 'cod') {
-    await Promise.allSettled(
-      lineItems.map(li =>
-        admin.rpc('reserve_stock', { p_product_id: li.product_id, p_quantity: li.quantity })
-      )
-    )
+    await deductStock()
+    revalidateTag('products'); revalidateTag('admin-products'); revalidateTag('admin-dashboard')
     if (validatedCouponCode) {
       await admin.rpc('increment_coupon_uses', { p_code: validatedCouponCode }).catch(() => {})
     }
@@ -346,11 +390,8 @@ export async function POST(req: NextRequest) {
 
   // ── 8b. UPI → reserve stock + send alerts, no Razorpay ───────────────────
   if (payment_method === 'upi') {
-    await Promise.allSettled(
-      lineItems.map(li =>
-        admin.rpc('reserve_stock', { p_product_id: li.product_id, p_quantity: li.quantity })
-      )
-    )
+    await deductStock()
+    revalidateTag('products'); revalidateTag('admin-products'); revalidateTag('admin-dashboard')
     if (validatedCouponCode) {
       await admin.rpc('increment_coupon_uses', { p_code: validatedCouponCode }).catch(() => {})
     }

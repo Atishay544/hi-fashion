@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const { admin } = guard
 
   const body = await req.json()
-  const { variants, ...productData } = body
+  const { variants, skus, ...productData } = body
 
   const { data: product, error } = await admin
     .from('products')
@@ -45,6 +45,16 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Save SKU combinations (stock per variant combo)
+  if (skus && skus.length > 0 && product) {
+    const skuRows = (skus as any[])
+      .filter(s => s.attributes && typeof s.stock === 'number')
+      .map(s => ({ product_id: product.id, attributes: s.attributes, stock: s.stock }))
+    if (skuRows.length > 0) {
+      await admin.from('product_skus').insert(skuRows)
+    }
+  }
+
   revalidateTag('products'); revalidateTag('admin-products'); revalidateTag('admin-dashboard')
   return NextResponse.json({ data: product })
 }
@@ -55,7 +65,7 @@ export async function PATCH(req: NextRequest) {
   const { admin } = guard
 
   const body = await req.json()
-  const { id, variants, ...fields } = body
+  const { id, variants, skus, ...fields } = body
 
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
@@ -80,20 +90,34 @@ export async function PATCH(req: NextRequest) {
         .map(v => ({ product_id: id, name: v.name.trim(), options: v.options }))
     : []
 
-  // Parallel: update product fields + delete old variants (independent operations)
-  const [{ error }, deleteResult] = await Promise.all([
+  // Parallel: update product fields + delete old variants + delete old skus
+  const [{ error }, deleteVariants, deleteSkus] = await Promise.all([
     admin.from('products').update(payload).eq('id', id),
     variants !== undefined
       ? admin.from('product_variants').delete().eq('product_id', id)
       : Promise.resolve({ error: null }),
+    skus !== undefined
+      ? admin.from('product_skus').delete().eq('product_id', id)
+      : Promise.resolve({ error: null }),
   ])
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  if (deleteResult?.error) return NextResponse.json({ error: deleteResult.error.message }, { status: 400 })
+  if (deleteVariants?.error) return NextResponse.json({ error: deleteVariants.error.message }, { status: 400 })
+  if (deleteSkus?.error) return NextResponse.json({ error: deleteSkus.error.message }, { status: 400 })
 
   // Insert new variants after delete completes
   if (variants !== undefined && variantRows.length > 0) {
     await admin.from('product_variants').insert(variantRows)
+  }
+
+  // Insert new SKUs after delete completes
+  if (skus !== undefined && skus.length > 0) {
+    const skuRows = (skus as any[])
+      .filter(s => s.attributes && typeof s.stock === 'number')
+      .map(s => ({ product_id: id, attributes: s.attributes, stock: s.stock }))
+    if (skuRows.length > 0) {
+      await admin.from('product_skus').insert(skuRows)
+    }
   }
 
   revalidateTag('products'); revalidateTag('admin-products'); revalidateTag('admin-dashboard')

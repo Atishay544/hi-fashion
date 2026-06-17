@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
 import { useProductImages } from './ProductImageProvider'
+import type { StoreSku } from './ProductActions'
 
 interface VariantOption {
   value: string
@@ -10,7 +10,14 @@ interface VariantOption {
 interface Variant {
   id: string
   name: string
-  options: (string | VariantOption)[]
+  options: unknown[]
+}
+
+interface Props {
+  variants: Variant[]
+  skus: StoreSku[]
+  selected: Record<string, string>
+  onSelect: (next: Record<string, string>) => void
 }
 
 function normalize(o: unknown): VariantOption {
@@ -25,24 +32,40 @@ function normalize(o: unknown): VariantOption {
   return { value: String(o), images: [] }
 }
 
-export default function VariantSelector({ variants }: { variants: Variant[] }) {
-  const [selected, setSelected] = useState<Record<string, string>>({})
+function skuKey(attrs: Record<string, string>) {
+  return Object.entries(attrs)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join('|')
+}
+
+export default function VariantSelector({ variants, skus, selected, onSelect }: Props) {
   const { defaultImages, setActiveImages } = useProductImages()
 
   if (!variants || variants.length === 0) return null
 
   function handleSelect(variantName: string, opt: VariantOption) {
     const isDeselect = selected[variantName] === opt.value
+    const next = { ...selected, [variantName]: isDeselect ? '' : opt.value }
+    onSelect(next)
 
-    setSelected(prev => ({
-      ...prev,
-      [variantName]: isDeselect ? '' : opt.value,
-    }))
-
-    // Only switch gallery images if this option has variant-specific images
+    // Switch gallery images if this color option has variant-specific images
     if (opt.images.length > 0) {
       setActiveImages(isDeselect ? defaultImages : opt.images)
     }
+  }
+
+  // For a given variant + option, is this combo out of stock based on current selections?
+  function isComboOutOfStock(variantName: string, optValue: string): boolean {
+    if (skus.length === 0) return false
+    // Build the hypothetical full selection if this option were chosen
+    const hypothetical: Record<string, string> = { ...selected, [variantName]: optValue }
+    const allVariantNames = variants.map(v => v.name)
+    // Only check if all variants would be selected
+    if (!allVariantNames.every(n => !!hypothetical[n])) return false
+    const key = skuKey(hypothetical)
+    const sku = skus.find(s => skuKey(s.attributes) === key)
+    return sku !== undefined && sku.stock === 0
   }
 
   return (
@@ -62,20 +85,24 @@ export default function VariantSelector({ variants }: { variants: Variant[] }) {
             <div className="flex flex-wrap gap-2">
               {opts.map(opt => {
                 const isActive = selected[v.name] === opt.value
+                const outOfStock = isComboOutOfStock(v.name, opt.value)
                 const hasImages = opt.images.length > 0
                 return (
                   <button
                     key={opt.value}
                     type="button"
+                    disabled={outOfStock}
                     onClick={() => handleSelect(v.name, opt)}
                     className={`relative min-w-11 px-4 py-2 rounded-lg text-sm font-medium border-2 transition-all duration-150 ${
-                      isActive
-                        ? 'border-gray-900 bg-gray-900 text-white shadow-sm'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-500'
+                      outOfStock
+                        ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through'
+                        : isActive
+                          ? 'border-gray-900 bg-gray-900 text-white shadow-sm'
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-500'
                     }`}
                   >
                     {opt.value}
-                    {hasImages && (
+                    {hasImages && !outOfStock && (
                       <span
                         className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center ${
                           isActive ? 'bg-white text-gray-900' : 'bg-indigo-500 text-white'
@@ -83,6 +110,11 @@ export default function VariantSelector({ variants }: { variants: Variant[] }) {
                         title={`${opt.images.length} photos`}
                       >
                         {opt.images.length}
+                      </span>
+                    )}
+                    {outOfStock && (
+                      <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="w-full h-px bg-gray-300 rotate-45 absolute" />
                       </span>
                     )}
                   </button>

@@ -58,14 +58,18 @@ export default async function OrderDetailPage({ params }: PageProps) {
     online:      { label: 'Paid Online',      color: 'bg-blue-100 text-blue-800' },
     cod:         { label: 'Cash on Delivery', color: 'bg-orange-100 text-orange-800' },
     cod_upfront: { label: 'COD Upfront',      color: 'bg-green-100 text-green-800' },
+    upi:         { label: 'UPI Transfer',     color: 'bg-purple-100 text-purple-800' },
   }
 
   const PS_LABELS: Record<string, { label: string; color: string }> = {
-    prepaid: { label: 'Prepaid',  color: 'bg-emerald-100 text-emerald-800' },
-    cod:     { label: 'COD',      color: 'bg-amber-100 text-amber-800' },
-    partial: { label: 'Partial',  color: 'bg-purple-100 text-purple-800' },
+    prepaid:       { label: 'Prepaid',          color: 'bg-emerald-100 text-emerald-800' },
+    cod:           { label: 'COD',              color: 'bg-amber-100 text-amber-800' },
+    partial:       { label: 'Partial',          color: 'bg-purple-100 text-purple-800' },
+    upi_pending:   { label: 'UPI – Unverified', color: 'bg-red-100 text-red-700' },
+    upi_confirmed: { label: 'UPI – Confirmed',  color: 'bg-emerald-100 text-emerald-800' },
   }
   const paymentStatus = (order as any).payment_status as string | undefined
+  const utrNumber = meta.utr_number as string | undefined
 
   return (
     <div>
@@ -168,6 +172,8 @@ export default async function OrderDetailPage({ params }: PageProps) {
             orderId={order.id}
             currentStatus={order.status}
             currentTracking={order.tracking_number ?? ''}
+            utrNumber={utrNumber ?? null}
+            paymentStatus={paymentStatus ?? null}
           />
 
           {/* Delivery / Shipping Panel */}

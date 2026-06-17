@@ -17,12 +17,13 @@ export default async function EditProductPage({ params }: PageProps) {
   const { id } = await params
   const admin = createAdminClient()
 
-  const [{ data: product }, { data: categories }, { data: variantRows }] = await Promise.all([
+  const [{ data: product }, { data: categories }, { data: variantRows }, { data: skuRows }] = await Promise.all([
     admin.from('products')
       .select('id, name, slug, description, price, compare_price, stock, weight_grams, category_id, is_active, images, video_url')
       .eq('id', id).single(),
     admin.from('categories').select('id, name').order('name'),
     admin.from('product_variants').select('id, name, options').eq('product_id', id),
+    admin.from('product_skus').select('attributes, stock').eq('product_id', id),
   ])
 
   if (!product) notFound()
@@ -45,6 +46,7 @@ export default async function EditProductPage({ params }: PageProps) {
         <h1 className="text-2xl font-bold text-gray-900 truncate">{product.name}</h1>
       </div>
       <ProductForm
+        initialSkus={(skuRows ?? []).map((s: any) => ({ attributes: s.attributes, stock: Number(s.stock) }))}
         product={{
           ...product,
           description:   product.description ?? null,

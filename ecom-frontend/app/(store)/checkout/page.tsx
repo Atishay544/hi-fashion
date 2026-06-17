@@ -138,7 +138,7 @@ export default function CheckoutPage() {
         payment_method: string
         razorpay_order?: { id: string; amount: number; currency: string }
       }>('/api/checkout', {
-        items:            items.map(i => ({ product_id: i.id, quantity: i.quantity, price: i.price })),
+        items:            items.map(i => ({ product_id: i.id, quantity: i.quantity, price: i.price, variant_attributes: i.variantAttributes ?? null })),
         shipping_address: address,
         guest_email:      !user ? (guestEmail.trim() || null) : undefined,
         coupon_code:      couponResult?.code,
@@ -403,8 +403,11 @@ export default function CheckoutPage() {
               <h2 className="font-bold text-lg mb-4">Order Summary</h2>
               <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
                 {items.map(i => (
-                  <div key={i.id} className="flex justify-between text-sm">
-                    <span className="text-gray-600 truncate flex-1 mr-2">{i.name} × {i.quantity}</span>
+                  <div key={`${i.id}-${i.variantLabel ?? ''}`} className="flex justify-between text-sm">
+                    <span className="text-gray-600 truncate flex-1 mr-2">
+                      {i.name} × {i.quantity}
+                      {i.variantLabel && <span className="block text-xs text-gray-400">{i.variantLabel}</span>}
+                    </span>
                     <span className="font-medium shrink-0">{formatPrice(i.price * i.quantity)}</span>
                   </div>
                 ))}

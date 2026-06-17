@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Plus, X, GripVertical } from 'lucide-react'
 import ImageUploader from './ImageUploader'
 import VideoUploader from './VideoUploader'
+import SkuMatrix, { type SkuRow } from './SkuMatrix'
 
 interface Category { id: string; name: string }
 interface VariantOption { value: string; images: string[] }
@@ -29,6 +30,7 @@ interface Props {
   product?: Product
   categories: Category[]
   initialVariants?: VariantRow[]
+  initialSkus?: SkuRow[]
 }
 
 function slugify(str: string) {
@@ -38,7 +40,7 @@ function slugify(str: string) {
 const INPUT = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900'
 const LABEL = 'block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1'
 
-export default function ProductForm({ product, categories, initialVariants = [] }: Props) {
+export default function ProductForm({ product, categories, initialVariants = [], initialSkus = [] }: Props) {
   const router = useRouter()
   const isEdit = !!product
 
@@ -54,6 +56,7 @@ export default function ProductForm({ product, categories, initialVariants = [] 
   const [images, setImages]         = useState<string[]>(product?.images ?? [])
   const [videoUrl, setVideoUrl]     = useState<string | null>(product?.video_url ?? null)
   const [variants, setVariants]     = useState<VariantRow[]>(initialVariants)
+  const [skus, setSkus]             = useState<SkuRow[]>(initialSkus)
   const [openOptionKey, setOpenOptionKey] = useState<string | null>(null)
   const [saving, setSaving]         = useState(false)
   const [error, setError]           = useState('')
@@ -123,6 +126,7 @@ export default function ProductForm({ product, categories, initialVariants = [] 
       variants:      variants
         .filter(v => v.name.trim() && v.options.length > 0)
         .map(v => ({ name: v.name.trim(), options: v.options })),
+      skus: skus.filter(s => Object.keys(s.attributes).length > 0),
     }
 
     if (isNaN(payload.price) || payload.price < 0) {
@@ -344,6 +348,11 @@ export default function ProductForm({ product, categories, initialVariants = [] 
               </div>
             )}
           </div>
+
+          {/* SKU stock matrix — appears once variants with options exist */}
+          {variants.some(v => v.name.trim() && v.options.length > 0) && (
+            <SkuMatrix variants={variants} value={skus} onChange={setSkus} />
+          )}
         </div>
 
         {/* ── RIGHT COLUMN ── */}
