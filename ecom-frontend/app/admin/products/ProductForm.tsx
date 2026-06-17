@@ -61,6 +61,15 @@ export default function ProductForm({ product, categories, initialVariants = [],
   const [videoUrl, setVideoUrl]     = useState<string | null>(product?.video_url ?? null)
   const [variants, setVariants]     = useState<VariantRow[]>(initialVariants)
   const [skus, setSkus]             = useState<SkuRow[]>(initialSkus)
+  // tracks which option is the main display: "variantName::optionValue"
+  const [defaultOptionKey, setDefaultOptionKey] = useState<string | null>(() => {
+    for (const v of initialVariants) {
+      for (const o of v.options) {
+        if ((o as any).isDefault) return `${v.name}::${o.value}`
+      }
+    }
+    return null
+  })
   const [openOptionKey, setOpenOptionKey] = useState<string | null>(null)
   const [saving, setSaving]         = useState(false)
   const [error, setError]           = useState('')
@@ -141,6 +150,12 @@ export default function ProductForm({ product, categories, initialVariants = [],
     setError('')
     setSaving(true)
 
+    let defaultVariantRef: { variantName: string; optionValue: string } | null = null
+    if (defaultOptionKey) {
+      const [variantName, optionValue] = defaultOptionKey.split('::')
+      defaultVariantRef = { variantName, optionValue }
+    }
+
     const payload = {
       name:          name.trim(),
       slug:          slug.trim(),
@@ -156,7 +171,8 @@ export default function ProductForm({ product, categories, initialVariants = [],
       variants:      variants
         .filter(v => v.name.trim() && v.options.length > 0)
         .map(v => ({ name: v.name.trim(), options: v.options })),
-      skus: skus.filter(s => Object.keys(s.attributes).length > 0),
+      skus:              skus.filter(s => Object.keys(s.attributes).length > 0),
+      defaultVariantRef,
     }
 
     if (isNaN(payload.price) || payload.price < 0) {
@@ -378,6 +394,20 @@ export default function ProductForm({ product, categories, initialVariants = [],
                               >
                                 📸 {isOpen ? 'Close' : opt.images.length > 0 ? 'Edit Photos' : 'Add Photos'}
                               </button>
+                              {v.name.trim() && opt.images.length > 0 && (() => {
+                                const optKey = `${v.name}::${opt.value}`
+                                const isMainDisplay = defaultOptionKey === optKey
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => setDefaultOptionKey(prev => prev === optKey ? null : optKey)}
+                                    title={isMainDisplay ? 'Main display image — click to unset' : 'Set as main display image for listing cards'}
+                                    className={`text-base transition shrink-0 ${isMainDisplay ? 'opacity-100' : 'opacity-25 hover:opacity-70'}`}
+                                  >
+                                    ⭐
+                                  </button>
+                                )
+                              })()}
                               <button type="button" onClick={() => removeOption(i, oi)}
                                 className="text-gray-300 hover:text-red-500 transition p-1">
                                 <X size={14} />

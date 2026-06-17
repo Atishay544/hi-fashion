@@ -9,7 +9,26 @@ export async function POST(req: NextRequest) {
   const { admin } = guard
 
   const body = await req.json()
-  const { variants, skus, ...productData } = body
+  const { variants, skus, defaultVariantRef, ...productData } = body
+
+  // Mark isDefault on the matching option + build processed variants
+  const processedVariants = (variants ?? []).map((v: any) => ({
+    ...v,
+    options: (v.options ?? []).map((o: any) => ({
+      ...o,
+      isDefault: !!(defaultVariantRef &&
+        v.name?.trim() === defaultVariantRef.variantName &&
+        o.value === defaultVariantRef.optionValue),
+    })),
+  }))
+
+  // Auto cover image: if no product images, use default option's first image
+  let finalImages: string[] = productData.images ?? []
+  if (finalImages.length === 0 && defaultVariantRef) {
+    const defV = processedVariants.find((v: any) => v.name?.trim() === defaultVariantRef.variantName)
+    const defO = defV?.options?.find((o: any) => o.value === defaultVariantRef.optionValue)
+    if (Array.isArray(defO?.images) && defO.images.length > 0) finalImages = [defO.images[0]]
+  }
 
   const { data: product, error } = await admin
     .from('products')
@@ -23,7 +42,7 @@ export async function POST(req: NextRequest) {
       weight_grams:  parseInt(productData.weight_grams, 10) || 500,
       category_id:   productData.category_id || null,
       is_active:     productData.is_active ?? true,
-      images:        productData.images ?? [],
+      images:        finalImages,
       video_url:     productData.video_url || null,
     })
     .select()
@@ -32,8 +51,8 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
   // Save variants (needs product.id — must be sequential)
-  if (variants && variants.length > 0 && product) {
-    const rows = variants
+  if (processedVariants.length > 0 && product) {
+    const rows = processedVariants
       .filter((v: any) => v.name?.trim() && v.options?.length > 0)
       .map((v: any) => ({
         product_id: product.id,
@@ -65,7 +84,27 @@ export async function PATCH(req: NextRequest) {
   const { admin } = guard
 
   const body = await req.json()
-  const { id, variants, skus, ...fields } = body
+  const { id, variants, skus, defaultVariantRef, ...fields } = body
+
+  // Mark isDefault + process variants for PATCH
+  const processedVariants = variants !== undefined
+    ? (variants as any[]).map((v: any) => ({
+        ...v,
+        options: (v.options ?? []).map((o: any) => ({
+          ...o,
+          isDefault: !!(defaultVariantRef &&
+            v.name?.trim() === defaultVariantRef.variantName &&
+            o.value === defaultVariantRef.optionValue),
+        })),
+      }))
+    : undefined
+
+  // Auto cover image on PATCH: if images array is empty, use default option's first image
+  if (fields.images !== undefined && fields.images.length === 0 && defaultVariantRef && processedVariants) {
+    const defV = processedVariants.find((v: any) => v.name?.trim() === defaultVariantRef.variantName)
+    const defO = defV?.options?.find((o: any) => o.value === defaultVariantRef.optionValue)
+    if (Array.isArray(defO?.images) && defO.images.length > 0) fields.images = [defO.images[0]]
+  }
 
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
@@ -84,16 +123,16 @@ export async function PATCH(req: NextRequest) {
   payload.updated_at = new Date().toISOString()
 
   // Precompute variant rows before parallel execution
-  const variantRows = variants !== undefined
-    ? (variants as any[])
-        .filter(v => v.name?.trim() && v.options?.length > 0)
-        .map(v => ({ product_id: id, name: v.name.trim(), options: v.options }))
+  const variantRows = processedVariants !== undefined
+    ? processedVariants
+        .filter((v: any) => v.name?.trim() && v.options?.length > 0)
+        .map((v: any) => ({ product_id: id, name: v.name.trim(), options: v.options }))
     : []
 
   // Parallel: update product fields + delete old variants + delete old skus
   const [{ error }, deleteVariants, deleteSkus] = await Promise.all([
     admin.from('products').update(payload).eq('id', id),
-    variants !== undefined
+    processedVariants !== undefined
       ? admin.from('product_variants').delete().eq('product_id', id)
       : Promise.resolve({ error: null }),
     skus !== undefined
@@ -106,7 +145,7 @@ export async function PATCH(req: NextRequest) {
   if (deleteSkus?.error) return NextResponse.json({ error: deleteSkus.error.message }, { status: 400 })
 
   // Insert new variants after delete completes
-  if (variants !== undefined && variantRows.length > 0) {
+  if (processedVariants !== undefined && variantRows.length > 0) {
     await admin.from('product_variants').insert(variantRows)
   }
 

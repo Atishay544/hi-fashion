@@ -16,6 +16,7 @@ interface Props {
   variants: { id: string; name: string; options: unknown[] }[]
   skus: StoreSku[]
   initialOffers: Offer[]
+  initialSelection?: Record<string, string>
 }
 
 function skuKey(attrs: Record<string, string>) {
@@ -25,8 +26,8 @@ function skuKey(attrs: Record<string, string>) {
     .join('|')
 }
 
-export default function ProductActions({ product, variants, skus, initialOffers }: Props) {
-  const [selected, setSelected] = useState<Record<string, string>>({})
+export default function ProductActions({ product, variants, skus, initialOffers, initialSelection }: Props) {
+  const [selected, setSelected] = useState<Record<string, string>>(initialSelection ?? {})
 
   const variantNames = variants.map(v => v.name)
   const allSelected = variantNames.length > 0 && variantNames.every(n => !!selected[n])

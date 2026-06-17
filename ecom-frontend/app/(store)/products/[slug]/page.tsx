@@ -293,12 +293,43 @@ export default async function ProductDetailPage({ params }: Props) {
     ? Math.round((1 - product.price / product.compare_price) * 100)
     : 0
 
-  const images: string[] = product.images ?? []
   const videoUrl: string | null = product.video_url ?? null
 
   const savings = product.compare_price
     ? product.compare_price - product.price
     : 0
+
+  // When SKUs manage stock, total across all combos is the effective stock for the badge
+  const totalStock = skus.length > 0
+    ? skus.reduce((sum, s) => sum + s.stock, 0)
+    : product.stock
+
+  // Find default display option (isDefault flag set by admin ⭐)
+  function findDefaultOption() {
+    for (const v of variants) {
+      for (const o of (Array.isArray(v.options) ? v.options : []) as any[]) {
+        if (o?.isDefault && Array.isArray(o.images) && o.images.length > 0)
+          return { variantName: v.name, optionValue: o.value as string, images: o.images as string[] }
+      }
+    }
+    // Fallback: first option that has images
+    for (const v of variants) {
+      for (const o of (Array.isArray(v.options) ? v.options : []) as any[]) {
+        if (Array.isArray(o?.images) && o.images.length > 0)
+          return { variantName: v.name, optionValue: o.value as string, images: o.images as string[] }
+      }
+    }
+    return null
+  }
+  const defaultOption = variants.length > 0 ? findDefaultOption() : null
+
+  // Use product images if uploaded; otherwise fall back to default option's images
+  const rawImages: string[] = product.images ?? []
+  const images: string[] = rawImages.length > 0 ? rawImages : (defaultOption?.images ?? [])
+  // Pre-select the default color so gallery + color chip are in sync on load
+  const initialSelection: Record<string, string> = defaultOption
+    ? { [defaultOption.variantName]: defaultOption.optionValue }
+    : {}
 
   return (
     <div className="max-w-350 mx-auto px-4 sm:px-6 lg:px-10 py-6 md:py-10">
@@ -425,12 +456,12 @@ export default async function ProductDetailPage({ params }: Props) {
           {/* Social proof + stock */}
           <div className="flex flex-wrap items-center gap-2">
             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-              product.stock === 0 ? 'bg-red-50 text-red-600'
-              : product.stock < 10 ? 'bg-amber-50 text-amber-700'
+              totalStock === 0 ? 'bg-red-50 text-red-600'
+              : totalStock < 10 ? 'bg-amber-50 text-amber-700'
               : 'bg-green-50 text-green-700'
             }`}>
-              {product.stock === 0 ? 'Out of Stock'
-                : product.stock < 10 ? `Only ${product.stock} left!`
+              {totalStock === 0 ? 'Out of Stock'
+                : totalStock < 10 ? `Only ${totalStock} left!`
                 : 'In Stock'}
             </span>
             {product.sku && <span className="text-xs text-gray-400">SKU: {product.sku}</span>}
@@ -458,6 +489,7 @@ export default async function ProductDetailPage({ params }: Props) {
             variants={variants}
             skus={skus}
             initialOffers={offers}
+            initialSelection={initialSelection}
           />
 
           {/* Product quality attributes — from metadata.attributes */}
