@@ -37,6 +37,10 @@ function slugify(str: string) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 }
 
+function comboKey(attrs: Record<string, string>) {
+  return Object.entries(attrs).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${k}=${v}`).join('|')
+}
+
 const INPUT = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900'
 const LABEL = 'block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1'
 
@@ -86,9 +90,15 @@ export default function ProductForm({ product, categories, initialVariants = [],
   function removeOption(varIdx: number, optIdx: number) {
     const key = `${varIdx}-${optIdx}`
     if (openOptionKey === key) setOpenOptionKey(null)
+    const removedValue = variants[varIdx].options[optIdx]?.value
+    const variantName = variants[varIdx].name
     setVariants(v => v.map((row, idx) =>
       idx === varIdx ? { ...row, options: row.options.filter((_, oi) => oi !== optIdx) } : row
     ))
+    if (variantName.trim() && removedValue) {
+      const removeKey = comboKey({ [variantName]: removedValue })
+      setSkus(prev => prev.filter(s => comboKey(s.attributes) !== removeKey))
+    }
   }
   function setOptionImages(varIdx: number, optIdx: number, images: string[]) {
     setVariants(v => v.map((row, idx) =>
@@ -103,6 +113,26 @@ export default function ProductForm({ product, categories, initialVariants = [],
   }
   function handleOptionKeyDown(e: React.KeyboardEvent, i: number) {
     if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addOption(i) }
+  }
+
+  // ── Variant / stock helpers ──────────────────────────────────────────────
+  const activeVariants = variants.filter(v => v.name.trim() && v.options.length > 0)
+  const hasVariants = activeVariants.length > 0
+  const isSingleVariant = activeVariants.length === 1
+
+  function getOptionStock(variantName: string, optionValue: string): number {
+    const key = comboKey({ [variantName]: optionValue })
+    return skus.find(s => comboKey(s.attributes) === key)?.stock ?? 0
+  }
+
+  function setOptionStock(variantName: string, optionValue: string, newStock: number) {
+    const attrs = { [variantName]: optionValue }
+    const key = comboKey(attrs)
+    setSkus(prev => {
+      if (prev.some(s => comboKey(s.attributes) === key))
+        return prev.map(s => comboKey(s.attributes) === key ? { ...s, stock: newStock } : s)
+      return [...prev, { attributes: attrs, stock: newStock }]
+    })
   }
 
   // ── Submit ───────────────────────────────────────────────────────────────
@@ -214,10 +244,17 @@ export default function ProductForm({ product, categories, initialVariants = [],
                 <p className="text-[11px] text-gray-400 mt-1">Shows strikethrough MRP</p>
               </div>
               <div>
-                <label className={LABEL}>Stock *</label>
-                <input type="number" min="0" step="1" value={stock}
-                  onChange={e => setStock(e.target.value)} required
-                  className={INPUT} />
+                <label className={LABEL}>Stock {!hasVariants && '*'}</label>
+                <input type="number" min="0" step="1"
+                  value={hasVariants ? '' : stock}
+                  onChange={e => setStock(e.target.value)}
+                  required={!hasVariants}
+                  disabled={hasVariants}
+                  placeholder={hasVariants ? '—' : '0'}
+                  className={INPUT + (hasVariants ? ' bg-gray-100 text-gray-400 cursor-not-allowed' : '')} />
+                {hasVariants
+                  ? <p className="text-[11px] text-indigo-500 mt-1">Controlled by variations below</p>
+                  : null}
               </div>
               <div>
                 <label className={LABEL}>Weight (grams) *</label>
@@ -255,10 +292,17 @@ export default function ProductForm({ product, categories, initialVariants = [],
                 <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Variations</h2>
                 <p className="text-xs text-gray-400 mt-0.5">Size, Color, Material — click a chip to upload images per option</p>
               </div>
+              <div className="flex items-center gap-2">
+                {isSingleVariant && (
+                  <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                    {skus.reduce((s, r) => s + r.stock, 0)} pcs total
+                  </span>
+                )}
               <button type="button" onClick={addVariant}
                 className="flex items-center gap-1.5 text-xs font-medium text-gray-700 border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 transition">
                 <Plus size={13} /> Add Variation
               </button>
+              </div>
             </div>
 
             {variants.length === 0 ? (
@@ -302,6 +346,20 @@ export default function ProductForm({ product, categories, initialVariants = [],
                             {/* Option row */}
                             <div className="flex items-center gap-3 px-3 py-2.5">
                               <span className="flex-1 text-sm font-medium text-gray-800">{opt.value}</span>
+                              {isSingleVariant && v.name.trim() && (
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className="text-xs text-gray-400">Stock:</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={getOptionStock(v.name, opt.value) || ''}
+                                    placeholder="0"
+                                    onChange={e => setOptionStock(v.name, opt.value, Math.max(0, parseInt(e.target.value, 10) || 0))}
+                                    className="w-16 text-right border border-gray-300 rounded-lg px-2 py-1 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-gray-900"
+                                  />
+                                </div>
+                              )}
                               <span className="text-xs text-gray-400">
                                 {opt.images.length > 0
                                   ? `${opt.images.length} photo${opt.images.length > 1 ? 's' : ''}`
@@ -346,11 +404,11 @@ export default function ProductForm({ product, categories, initialVariants = [],
                   </div>
                 ))}
 
-                {/* Stock per combination — shown inside Variations card once options exist */}
-                {variants.some(v => v.name.trim() && v.options.length > 0) && (
+                {/* Stock per combination — only needed when 2+ variants (cartesian combos) */}
+                {!isSingleVariant && hasVariants && (
                   <div className="mt-4 border-t border-gray-200 pt-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Step 2 — Set Stock per Option</span>
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Stock per Combination</span>
                       <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Required</span>
                     </div>
                     <SkuMatrix variants={variants} value={skus} onChange={setSkus} />
