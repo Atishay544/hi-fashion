@@ -78,7 +78,8 @@ export default function CheckoutPage() {
   const codOffers = offers.filter(o => o.type === 'cod_upfront')
   const UPI_ID  = process.env.NEXT_PUBLIC_UPI_ID  ?? ''
   const UPI_NAME = process.env.NEXT_PUBLIC_UPI_NAME ?? 'Hi Fashions'
-  const upiLink  = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${grandTotal.toFixed(2)}&cu=INR&tn=Hi+Fashion+Order`
+  const upiAmount = paymentMethod === 'partial_cod' ? partialCodAdvance : grandTotal
+  const upiLink  = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${upiAmount.toFixed(2)}&cu=INR&tn=Hi+Fashion+Order`
   const qrUrl    = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiLink)}`
 
   const codBreakdown = paymentMethod === 'cod_upfront' && selectedOffer?.upfront_pct && selectedOffer?.discount_pct
@@ -127,7 +128,7 @@ export default function CheckoutPage() {
       setError('Enter a valid email address'); return
     }
 
-    if (paymentMethod === 'upi') {
+    if (paymentMethod === 'upi' || paymentMethod === 'partial_cod') {
       if (!utrNumber.trim()) { setError('Please enter your UTR / Transaction ID after paying'); return }
       if (!/^[A-Za-z0-9]{6,24}$/.test(utrNumber.trim())) { setError('Enter a valid UTR number (6–24 alphanumeric characters)'); return }
     }
@@ -165,7 +166,7 @@ export default function CheckoutPage() {
         return
       }
 
-      if (res.payment_method === 'upi') {
+      if (res.payment_method === 'upi' || res.payment_method === 'partial_cod') {
         clearCart()
         router.push(`/checkout/success?id=${res.order_id}&payment=upi`)
         return
@@ -305,10 +306,10 @@ export default function CheckoutPage() {
                   <PaymentCard
                     selected={paymentMethod === 'partial_cod'}
                     onClick={() => selectPaymentMethod('partial_cod')}
-                    icon={<Truck size={20} className="text-amber-600" />}
-                    title="Partial COD (High-value order)"
-                    subtitle={`Pay ${PARTIAL_COD_PCT}% now (${formatPrice(partialCodAdvance)}) via Razorpay + ${formatPrice(partialCodOnDelivery)} on delivery`}
-                    badge={<span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5 font-medium">20% advance required</span>}
+                    icon={<Smartphone size={20} className="text-amber-600" />}
+                    title="Partial COD — Pay advance via UPI"
+                    subtitle={`Pay ${PARTIAL_COD_PCT}% (${formatPrice(partialCodAdvance)}) now via UPI + ${formatPrice(partialCodOnDelivery)} cash on delivery`}
+                    badge={<span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5 font-medium">20% advance via UPI</span>}
                   />
                 )}
                 <PaymentCard
@@ -362,10 +363,19 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            {/* UPI QR + UTR panel */}
-            {paymentMethod === 'upi' && (
-              <div className="border border-purple-200 rounded-2xl p-4 sm:p-6 space-y-5">
-                <h2 className="font-semibold text-lg">Scan & Pay</h2>
+            {/* UPI QR + UTR panel — shown for both UPI and Partial COD */}
+            {(paymentMethod === 'upi' || paymentMethod === 'partial_cod') && (
+              <div className={`border rounded-2xl p-4 sm:p-6 space-y-5 ${paymentMethod === 'partial_cod' ? 'border-amber-200' : 'border-purple-200'}`}>
+                <div>
+                  <h2 className="font-semibold text-lg">
+                    {paymentMethod === 'partial_cod' ? `Scan & Pay Advance — ${formatPrice(partialCodAdvance)}` : 'Scan & Pay'}
+                  </h2>
+                  {paymentMethod === 'partial_cod' && (
+                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
+                      Pay only the 20% advance now. Remaining {formatPrice(partialCodOnDelivery)} will be collected cash on delivery.
+                    </p>
+                  )}
+                </div>
                 <div className="flex flex-col sm:flex-row items-center gap-6">
                   <div className="bg-white p-3 rounded-xl border border-gray-200 shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -375,11 +385,11 @@ export default function CheckoutPage() {
                     <li>1. Open <strong>GPay / PhonePe / Paytm</strong></li>
                     <li>2. Scan QR or pay to UPI ID:</li>
                     <li>
-                      <span className="inline-block font-mono bg-purple-50 border border-purple-200 rounded-lg px-3 py-1.5 text-purple-900 font-semibold select-all text-xs">
+                      <span className={`inline-block font-mono border rounded-lg px-3 py-1.5 font-semibold select-all text-xs ${paymentMethod === 'partial_cod' ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-purple-50 border-purple-200 text-purple-900'}`}>
                         {UPI_ID || 'UPI ID not configured'}
                       </span>
                     </li>
-                    <li>3. Pay exactly <strong>₹{grandTotal.toFixed(2)}</strong></li>
+                    <li>3. Pay exactly <strong>₹{upiAmount.toFixed(2)}</strong></li>
                     <li>4. Copy the <strong>UTR / Transaction ID</strong> from your app</li>
                     <li>5. Paste it below and place order</li>
                   </ol>
@@ -394,7 +404,7 @@ export default function CheckoutPage() {
                     onChange={e => setUtrNumber(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase())}
                     placeholder="e.g. 421612345678"
                     maxLength={24}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                    className={`w-full border rounded-xl px-4 py-3 text-sm font-mono tracking-wider focus:outline-none bg-white ${paymentMethod === 'partial_cod' ? 'border-gray-300 focus:ring-2 focus:ring-amber-500' : 'border-gray-300 focus:ring-2 focus:ring-purple-500'}`}
                   />
                   <p className="text-xs text-gray-400 mt-1.5">
                     Open your UPI app → Recent transactions → Copy the 12-digit UTR/Ref number
@@ -427,7 +437,7 @@ export default function CheckoutPage() {
           </div>
 
           {/* ── Right Column: Order Summary ──────────────────────────────────── */}
-          <div className="lg:col-span-2 order-first lg:order-last">
+          <div className="lg:col-span-2">
             <div className="bg-gray-50 rounded-2xl p-4 sm:p-6 lg:sticky lg:top-24">
               <h2 className="font-bold text-lg mb-4">Order Summary</h2>
               <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
@@ -465,7 +475,7 @@ export default function CheckoutPage() {
                   {paymentMethod === 'online' && <><CreditCard size={14} className="text-blue-600" /><span>Pay online via Razorpay</span></>}
                   {paymentMethod === 'cod' && <><Truck size={14} className="text-orange-600" /><span>Cash on Delivery</span></>}
                   {paymentMethod === 'cod_upfront' && <><Zap size={14} className="text-green-600" /><span>Pay {formatPrice(codBreakdown?.upfront ?? 0)} now + {formatPrice(codBreakdown?.discounted ?? 0)} on delivery</span></>}
-                  {paymentMethod === 'partial_cod' && <><Truck size={14} className="text-amber-600" /><span>Pay {formatPrice(partialCodAdvance)} now + {formatPrice(partialCodOnDelivery)} on delivery</span></>}
+                  {paymentMethod === 'partial_cod' && <><Smartphone size={14} className="text-amber-600" /><span>Pay {formatPrice(partialCodAdvance)} via UPI + {formatPrice(partialCodOnDelivery)} on delivery</span></>}
                   {paymentMethod === 'upi' && <><Smartphone size={14} className="text-purple-600" /><span>UPI Transfer</span></>}
                 </div>
               </div>
@@ -481,7 +491,7 @@ export default function CheckoutPage() {
                     : paymentMethod === 'upi'
                       ? `Place Order — UPI ₹${grandTotal.toFixed(2)}`
                       : paymentMethod === 'partial_cod'
-                        ? `Pay ${formatPrice(partialCodAdvance)} Now (${PARTIAL_COD_PCT}% Advance)`
+                        ? `Place Order — Pay ${formatPrice(partialCodAdvance)} via UPI (${PARTIAL_COD_PCT}% Advance)`
                         : paymentMethod === 'cod_upfront' && codBreakdown
                           ? `Pay ${formatPrice(codBreakdown.upfront)} Now`
                           : `Pay ${formatPrice(grandTotal)}`}

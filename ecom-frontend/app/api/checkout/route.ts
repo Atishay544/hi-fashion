@@ -72,8 +72,8 @@ export async function POST(req: NextRequest) {
   if (!validPaymentMethods.includes(payment_method))
     return NextResponse.json({ error: 'Invalid payment method' }, { status: 400 })
 
-  // ── UPI: validate UTR ─────────────────────────────────────────────────────
-  if (payment_method === 'upi') {
+  // ── UPI / Partial COD: validate UTR ──────────────────────────────────────
+  if (payment_method === 'upi' || payment_method === 'partial_cod') {
     if (!utr_number?.trim())
       return NextResponse.json({ error: 'UTR number is required for UPI payment' }, { status: 400 })
     const utr = utr_number.trim().toUpperCase()
@@ -269,6 +269,7 @@ export async function POST(req: NextRequest) {
     orderMetadata.advance_pct        = PARTIAL_COD_PCT
     orderMetadata.amount_charged     = amountToCharge
     orderMetadata.amount_on_delivery = total - amountToCharge
+    orderMetadata.utr_number         = utr_number?.trim().toUpperCase()
   }
   if (payment_method === 'upi') {
     orderMetadata.utr_number = utr_number.trim().toUpperCase()
@@ -448,6 +449,41 @@ export async function POST(req: NextRequest) {
     }).catch((e) => console.error('[email] upi new order alert failed:', e?.message ?? e))
 
     return NextResponse.json({ order_id: order.id, payment_method: 'upi' })
+  }
+
+  // ── 8c. Partial COD via UPI advance ──────────────────────────────────────
+  if (payment_method === 'partial_cod') {
+    await deductStock()
+    revalidateTag('products'); revalidateTag('admin-products'); revalidateTag('admin-dashboard')
+    if (validatedCouponCode) {
+      await admin.rpc('increment_coupon_uses', { p_code: validatedCouponCode }).catch(() => {})
+    }
+    const emailItems = lineItems.map(li => ({
+      name:       (li.snapshot as any).name,
+      quantity:   li.quantity,
+      unit_price: li.unit_price,
+    }))
+    const customerEmail = user?.email ?? guest_email ?? null
+    if (customerEmail) {
+      sendOrderConfirmation({
+        to:              customerEmail,
+        orderId:         order.id,
+        items:           emailItems,
+        subtotal, discount, total,
+        paymentMethod:   'partial_cod',
+        shippingAddress: shipping_address,
+      }).catch((e) => console.error('[email] partial_cod confirmation failed:', e?.message ?? e))
+    }
+    sendNewOrderAlert({
+      orderId:        order.id,
+      customerEmail:  customerEmail ?? 'Guest',
+      items:          emailItems,
+      total,
+      paymentMethod:  `Partial COD — ₹${amountToCharge} advance via UPI (UTR: ${utr_number?.trim().toUpperCase()}) + ₹${total - amountToCharge} on delivery`,
+      shippingAddress: shipping_address,
+    }).catch((e) => console.error('[email] partial_cod alert failed:', e?.message ?? e))
+
+    return NextResponse.json({ order_id: order.id, payment_method: 'partial_cod' })
   }
 
   // ── 9. Online / COD-upfront → create Razorpay order ──────────────────────
