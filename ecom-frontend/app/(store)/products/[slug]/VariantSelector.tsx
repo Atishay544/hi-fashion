@@ -34,8 +34,8 @@ function normalize(o: unknown): VariantOption {
 
 function skuKey(attrs: Record<string, string>) {
   return Object.entries(attrs)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([k, v]) => `${k}=${v}`)
+    .sort(([a], [b]) => a.toLowerCase().localeCompare(b.toLowerCase()))
+    .map(([k, v]) => `${k.toLowerCase()}=${v}`)
     .join('|')
 }
 
@@ -65,7 +65,8 @@ export default function VariantSelector({ variants, skus, selected, onSelect }: 
     if (!allVariantNames.every(n => !!hypothetical[n])) return false
     const key = skuKey(hypothetical)
     const sku = skus.find(s => skuKey(s.attributes) === key)
-    return sku !== undefined && sku.stock === 0
+    // Missing SKU (not created in admin) treated same as out-of-stock
+    return !sku || sku.stock === 0
   }
 
   return (

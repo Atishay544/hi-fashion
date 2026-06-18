@@ -144,8 +144,8 @@ export async function POST(req: NextRequest) {
 
   function skuAttrKey(attrs: Record<string, string>) {
     return Object.entries(attrs)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([k, v]) => `${k}=${v}`)
+      .sort(([a], [b]) => a.toLowerCase().localeCompare(b.toLowerCase()))
+      .map(([k, v]) => `${k.toLowerCase()}=${v}`)
       .join('|')
   }
 
