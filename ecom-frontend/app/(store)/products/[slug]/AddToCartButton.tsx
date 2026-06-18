@@ -60,7 +60,6 @@ export default function AddToCartButton({ product, variantAttributes, skuLabel, 
       {skuLabel && (
         <p className="text-xs text-gray-500">
           Selected: <span className="font-semibold text-gray-800">{skuLabel}</span>
-          <span className="ml-2 text-green-600 font-medium">· {product.stock} in stock</span>
         </p>
       )}
       <div className="flex items-center gap-3">

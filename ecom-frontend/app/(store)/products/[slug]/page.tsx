@@ -412,7 +412,10 @@ export default async function ProductDetailPage({ params }: Props) {
         <span className="text-gray-600 truncate max-w-45">{product.name}</span>
       </nav>
 
-      <ProductImageProvider defaultImages={images}>
+      <ProductImageProvider
+        defaultImages={images}
+        initialImages={defaultOption?.images && defaultOption.images.length > 0 ? defaultOption.images : images}
+      >
       <div className="grid md:grid-cols-[1fr_1fr] lg:grid-cols-[45%_1fr] gap-8 lg:gap-14">
         {/* ── LEFT: Gallery — driven by context (switches on color select) ── */}
         <div className="md:sticky md:top-24 md:self-start">

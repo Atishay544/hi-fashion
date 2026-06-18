@@ -86,7 +86,6 @@ export default function VariantSelector({ variants, skus, selected, onSelect }: 
               {opts.map(opt => {
                 const isActive = selected[v.name] === opt.value
                 const outOfStock = isComboOutOfStock(v.name, opt.value)
-                const hasImages = opt.images.length > 0
                 return (
                   <button
                     key={opt.value}
@@ -102,16 +101,6 @@ export default function VariantSelector({ variants, skus, selected, onSelect }: 
                     }`}
                   >
                     {opt.value}
-                    {hasImages && !outOfStock && (
-                      <span
-                        className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center ${
-                          isActive ? 'bg-white text-gray-900' : 'bg-indigo-500 text-white'
-                        }`}
-                        title={`${opt.images.length} photos`}
-                      >
-                        {opt.images.length}
-                      </span>
-                    )}
                     {outOfStock && (
                       <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <span className="w-full h-px bg-gray-300 rotate-45 absolute" />

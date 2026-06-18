@@ -116,9 +116,17 @@ export default async function ProductsPage({ searchParams }: PageProps) {
                     ₹{Number(product.price).toLocaleString('en-IN')}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className={product.stock < 10 ? 'text-red-600 font-semibold' : 'text-gray-700'}>
-                      {product.stock}
-                    </span>
+                    {(() => {
+                      const skus = (product as any).product_skus as { stock: number }[] | null
+                      const effectiveStock = skus && skus.length > 0
+                        ? skus.reduce((sum, s) => sum + s.stock, 0)
+                        : product.stock
+                      return (
+                        <span className={effectiveStock < 10 ? 'text-red-600 font-semibold' : 'text-gray-700'}>
+                          {effectiveStock}
+                        </span>
+                      )
+                    })()}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>

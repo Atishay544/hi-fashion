@@ -16,12 +16,16 @@ const Ctx = createContext<ImageCtx>({
 
 export function ProductImageProvider({
   defaultImages,
+  initialImages,
   children,
 }: {
   defaultImages: string[]
+  initialImages?: string[]
   children: React.ReactNode
 }) {
-  const [activeImages, setActiveImages] = useState(defaultImages)
+  const [activeImages, setActiveImages] = useState(
+    initialImages && initialImages.length > 0 ? initialImages : defaultImages
+  )
   const value = useMemo(
     () => ({ activeImages, defaultImages, setActiveImages }),
     [activeImages, defaultImages]
