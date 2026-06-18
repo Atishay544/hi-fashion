@@ -62,9 +62,11 @@ export default function ProductActions({ product, variants, skus, initialOffers,
         </div>
       )}
 
-      <div className="border-t border-gray-100 pt-5">
-        <ProductOffers price={product.price} initialOffers={initialOffers} />
-      </div>
+      {initialOffers.length > 0 && (
+        <div className="border-t border-gray-100 pt-5">
+          <ProductOffers price={product.price} initialOffers={initialOffers} />
+        </div>
+      )}
 
       <div className="border-t border-gray-100 pt-5 space-y-2">
         {variants.length > 0 && !allSelected && (
