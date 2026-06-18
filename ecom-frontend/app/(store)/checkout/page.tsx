@@ -76,11 +76,9 @@ export default function CheckoutPage() {
   const partialCodOnDelivery = grandTotal - partialCodAdvance
 
   const codOffers = offers.filter(o => o.type === 'cod_upfront')
-  const UPI_ID  = process.env.NEXT_PUBLIC_UPI_ID  ?? ''
-  const UPI_NAME = process.env.NEXT_PUBLIC_UPI_NAME ?? 'Hi Fashions'
+  // QR served by our own API — UPI credentials never sent to third-party services
   const upiAmount = paymentMethod === 'partial_cod' ? partialCodAdvance : grandTotal
-  const upiLink  = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${upiAmount.toFixed(2)}&cu=INR&tn=Hi+Fashion+Order`
-  const qrUrl    = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiLink)}`
+  const qrUrl    = `/api/upi-qr?amount=${upiAmount.toFixed(2)}`
 
   const codBreakdown = paymentMethod === 'cod_upfront' && selectedOffer?.upfront_pct && selectedOffer?.discount_pct
     ? (() => {
@@ -129,8 +127,11 @@ export default function CheckoutPage() {
     }
 
     if (paymentMethod === 'upi' || paymentMethod === 'partial_cod') {
-      if (!utrNumber.trim()) { setError('Please enter your UTR / Transaction ID after paying'); return }
-      if (!/^[A-Za-z0-9]{6,24}$/.test(utrNumber.trim())) { setError('Enter a valid UTR number (6–24 alphanumeric characters)'); return }
+      const utr = utrNumber.trim().toUpperCase()
+      if (!utr) { setError('Please enter your UTR / Transaction ID after paying'); return }
+      if (!/^[A-Z0-9]{12,22}$/.test(utr)) { setError('UTR must be 12–22 alphanumeric characters — copy it exactly from your UPI app'); return }
+      const fakePattern = /^(.)\1{11,}$|^0+$|^(TEST|FAKE|DEMO|XXXX|ABCD)/i
+      if (fakePattern.test(utr)) { setError('Please enter your actual UTR / Transaction ID from your UPI app'); return }
     }
 
     setError('')
@@ -140,6 +141,7 @@ export default function CheckoutPage() {
       const token = user ? await getToken() : null
       const headers: Record<string, string> = {}
       if (token) headers['Authorization'] = `Bearer ${token}`
+      if (paymentMethod === 'upi' || paymentMethod === 'partial_cod') headers['x-payment-hint'] = 'upi'
 
       const res = await api.post<{
         order_id: string
@@ -152,7 +154,7 @@ export default function CheckoutPage() {
         coupon_code:      couponResult?.code,
         payment_method:   paymentMethod,
         offer_id:         selectedOffer?.id ?? null,
-        utr_number:       paymentMethod === 'upi' ? utrNumber.trim().toUpperCase() : undefined,
+        utr_number:       (paymentMethod === 'upi' || paymentMethod === 'partial_cod') ? utrNumber.trim().toUpperCase() : undefined,
         total_hint:       grandTotal,
       }, { headers })
 
@@ -386,7 +388,7 @@ export default function CheckoutPage() {
                     <li>2. Scan QR or pay to UPI ID:</li>
                     <li>
                       <span className={`inline-block font-mono border rounded-lg px-3 py-1.5 font-semibold select-all text-xs ${paymentMethod === 'partial_cod' ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-purple-50 border-purple-200 text-purple-900'}`}>
-                        {UPI_ID || 'UPI ID not configured'}
+                        {process.env.NEXT_PUBLIC_UPI_ID || 'UPI ID not configured'}
                       </span>
                     </li>
                     <li>3. Pay exactly <strong>₹{upiAmount.toFixed(2)}</strong></li>

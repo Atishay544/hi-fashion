@@ -5,6 +5,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { sendOrderConfirmation, sendNewOrderAlert } from '@/lib/email'
 import { rateLimit } from '@/lib/security/rate-limit'
 import { assertSameOrigin } from '@/lib/security/csrf'
+import { sanitizeText } from '@/lib/security/sanitize'
 import { revalidateTag } from 'next/cache'
 
 type PaymentMethod = 'online' | 'cod' | 'cod_upfront' | 'upi' | 'partial_cod'
@@ -25,6 +26,13 @@ export async function POST(req: NextRequest) {
 
   const limited = await rateLimit(req, 'checkout')
   if (limited) return limited
+
+  // UPI-specific tighter rate limit (3 per 15 min — applied before body parse)
+  const isUpiMethod = (req.headers.get('x-payment-hint') ?? '').includes('upi')
+  if (isUpiMethod) {
+    const upiLimited = await rateLimit(req, 'upi')
+    if (upiLimited) return upiLimited
+  }
 
   // ── 1. Authenticate (optional — guests have no token) ─────────────────────
   const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '').trim()
@@ -68,25 +76,75 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Missing address field: ${f}` }, { status: 400 })
   }
 
+  // Sanitize all address string fields — prevents XSS in admin order view
+  const safeAddress = {
+    name:    sanitizeText(String(shipping_address.name)).slice(0, 100),
+    phone:   String(shipping_address.phone).replace(/[^+0-9]/g, '').slice(0, 16),
+    line1:   sanitizeText(String(shipping_address.line1)).slice(0, 200),
+    line2:   sanitizeText(String(shipping_address.line2 ?? '')).slice(0, 200),
+    city:    sanitizeText(String(shipping_address.city)).slice(0, 100),
+    state:   sanitizeText(String(shipping_address.state)).slice(0, 100),
+    pincode: String(shipping_address.pincode).replace(/\D/g, '').slice(0, 10),
+  }
+
   const validPaymentMethods: PaymentMethod[] = ['online', 'cod', 'cod_upfront', 'upi', 'partial_cod']
   if (!validPaymentMethods.includes(payment_method))
     return NextResponse.json({ error: 'Invalid payment method' }, { status: 400 })
 
-  // ── UPI / Partial COD: validate UTR ──────────────────────────────────────
+  // ── UPI / Partial COD: validate UTR (hardened) ───────────────────────────
   if (payment_method === 'upi' || payment_method === 'partial_cod') {
+    // Separate tighter rate limit for UPI payments
+    const upiRateLimit = await rateLimit(req, 'upi')
+    if (upiRateLimit) return upiRateLimit
+
     if (!utr_number?.trim())
-      return NextResponse.json({ error: 'UTR number is required for UPI payment' }, { status: 400 })
-    const utr = utr_number.trim().toUpperCase()
-    if (!/^[A-Z0-9]{6,24}$/.test(utr))
-      return NextResponse.json({ error: 'Invalid UTR number format' }, { status: 400 })
-    const admin = createAdminClient()
-    const { data: existing } = await admin
+      return NextResponse.json({ error: 'UTR / Transaction ID is required for UPI payment' }, { status: 400 })
+
+    const utr = utr_number.trim().toUpperCase().replace(/\s/g, '')
+
+    // Real NPCI UTRs: 12–22 alphanumeric characters (IMPS=12 digits, UPI ref=12-22)
+    if (!/^[A-Z0-9]{12,22}$/.test(utr))
+      return NextResponse.json({
+        error: 'Invalid UTR: must be 12–22 alphanumeric characters. Copy it exactly from your UPI app.',
+      }, { status: 400 })
+
+    // Block obvious fake/test UTR patterns
+    const FAKE_PATTERNS = [
+      /^(.)\1{11,}$/,               // all same character: AAAAAAAAAAAAA, 000000000000
+      /^(012345|123456|234567)/,    // sequential digits
+      /^(TEST|FAKE|DEMO|XXXX|ABCD|QWER)/,  // test strings
+      /^0+$/,                        // all zeros
+    ]
+    if (FAKE_PATTERNS.some(p => p.test(utr)))
+      return NextResponse.json({
+        error: 'Invalid UTR — please enter the actual transaction ID from your UPI app',
+      }, { status: 400 })
+
+    const adminUtr = createAdminClient()
+
+    // Duplicate UTR check — same UTR cannot pay for two orders
+    const { data: existingUtr } = await adminUtr
       .from('orders')
-      .select('id')
+      .select('id, created_at')
       .filter('metadata->>utr_number', 'eq', utr)
       .maybeSingle()
-    if (existing)
+    if (existingUtr)
       return NextResponse.json({ error: 'This UTR has already been used for another order' }, { status: 400 })
+
+    // UPI flood protection per phone — max 2 pending UPI orders per phone number
+    const phone = (shipping_address?.phone ?? '').replace(/\D/g, '').slice(-10)
+    if (phone.length === 10) {
+      const { count: upiCount } = await adminUtr
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .filter('shipping_address->>phone', 'ilike', `%${phone}`)
+        .in('payment_status', ['upi_pending'])
+        .in('status', ['pending'])
+      if ((upiCount ?? 0) >= 2)
+        return NextResponse.json({
+          error: 'Too many pending UPI orders for this phone number. Please wait for existing orders to be verified.',
+        }, { status: 429 })
+    }
   }
 
   // ── 3. Validate products + compute subtotal ───────────────────────────────
@@ -300,15 +358,7 @@ export async function POST(req: NextRequest) {
       shipping:         0,
       total,
       total_amount:     total,
-      shipping_address: {
-        name:    shipping_address.name,
-        phone:   shipping_address.phone,
-        line1:   shipping_address.line1,
-        line2:   shipping_address.line2 ?? '',
-        city:    shipping_address.city,
-        state:   shipping_address.state,
-        pincode: shipping_address.pincode,
-      },
+      shipping_address: safeAddress,
       coupon_code:     validatedCouponCode,
       metadata:        orderMetadata,
       payment_status:  paymentStatus,
@@ -335,16 +385,12 @@ export async function POST(req: NextRequest) {
   // ── 7b. Save address for logged-in users only ─────────────────────────────
   if (user) {
     admin.from('profiles')
-      .update({ saved_address: {
-        name: shipping_address.name, phone: shipping_address.phone,
-        line1: shipping_address.line1, line2: shipping_address.line2 ?? '',
-        city: shipping_address.city, state: shipping_address.state, pincode: shipping_address.pincode,
-      }})
+      .update({ saved_address: safeAddress })
       .eq('id', user.id)
       .then(() => {})
 
     ;(async () => {
-      const phone = (shipping_address.phone ?? '').replace(/\D/g, '')
+      const phone = safeAddress.phone.replace(/\D/g, '')
       if (phone.length < 10) return
       const { data: existing } = await admin
         .from('addresses')
@@ -358,14 +404,14 @@ export async function POST(req: NextRequest) {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user!.id)
       await admin.from('addresses').insert({
-        user_id: user!.id,
-        full_name: shipping_address.name,
-        phone: shipping_address.phone,
-        line1: shipping_address.line1,
-        line2: shipping_address.line2 || null,
-        city: shipping_address.city,
-        state: shipping_address.state,
-        pincode: shipping_address.pincode,
+        user_id:   user!.id,
+        full_name: safeAddress.name,
+        phone:     safeAddress.phone,
+        line1:     safeAddress.line1,
+        line2:     safeAddress.line2 || null,
+        city:      safeAddress.city,
+        state:     safeAddress.state,
+        pincode:   safeAddress.pincode,
         is_default: (count as any)?.count === 0,
       })
     })().catch(() => {})
@@ -405,7 +451,7 @@ export async function POST(req: NextRequest) {
         items:           emailItems,
         subtotal, discount, total,
         paymentMethod:   'cod',
-        shippingAddress: shipping_address,
+        shippingAddress: safeAddress,
       }).catch((e) => console.error('[email] order confirmation failed:', e?.message ?? e))
     }
     sendNewOrderAlert({
@@ -440,7 +486,7 @@ export async function POST(req: NextRequest) {
         items:           emailItems,
         subtotal, discount, total,
         paymentMethod:   'upi',
-        shippingAddress: shipping_address,
+        shippingAddress: safeAddress,
       }).catch((e) => console.error('[email] upi order confirmation failed:', e?.message ?? e))
     }
     sendNewOrderAlert({
@@ -475,7 +521,7 @@ export async function POST(req: NextRequest) {
         items:           emailItems,
         subtotal, discount, total,
         paymentMethod:   'partial_cod',
-        shippingAddress: shipping_address,
+        shippingAddress: safeAddress,
       }).catch((e) => console.error('[email] partial_cod confirmation failed:', e?.message ?? e))
     }
     sendNewOrderAlert({

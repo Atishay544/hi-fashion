@@ -3,11 +3,12 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 // Limits per named route
 const LIMITS: Record<string, { max: number; windowMs: number }> = {
-  checkout: { max: 10,  windowMs: 60_000  },  // 10 checkouts / min
-  login:    { max: 5,   windowMs: 60_000  },  // 5 attempts / min
-  otp:      { max: 3,   windowMs: 300_000 },  // 3 OTPs / 5 min
-  contact:  { max: 3,   windowMs: 60_000  },  // 3 submissions / min
-  default:  { max: 30,  windowMs: 60_000  },  // 30 req / min fallback
+  checkout: { max: 10,  windowMs: 60_000   },  // 10 checkouts / min
+  upi:      { max: 3,   windowMs: 900_000  },  // 3 UPI orders / 15 min (fraud-prone)
+  login:    { max: 5,   windowMs: 60_000   },  // 5 attempts / min
+  otp:      { max: 3,   windowMs: 300_000  },  // 3 OTPs / 5 min
+  contact:  { max: 3,   windowMs: 60_000   },  // 3 submissions / min
+  default:  { max: 30,  windowMs: 60_000   },  // 30 req / min fallback
 }
 
 // Cleanup runs at most once every 10 minutes across all instances
