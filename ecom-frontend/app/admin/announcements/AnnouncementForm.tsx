@@ -117,6 +117,7 @@ export default function AnnouncementForm() {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
               <option value={0}>0 — Top (sticky)</option>
               <option value={1}>1 — Below nav</option>
+              <option value={2}>2 — Below featured products</option>
             </select>
           </div>
           <div>

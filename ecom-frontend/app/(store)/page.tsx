@@ -13,25 +13,30 @@ const HeroCarousel = dynamic(() => import('./HeroCarousel'), { ssr: true })
 
 export const revalidate = 600
 
-const getBottomAnnouncement = unstable_cache(
-  async () => {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return null
-    const supabase = createPublicClient()
-    const now = new Date().toISOString()
-    const { data } = await supabase
-      .from('announcements')
-      .select('id,message,bg_color,text_color,link_url,link_text,is_active,sort_order')
-      .eq('is_active', true)
-      .eq('sort_order', 1)
-      .or(`starts_at.is.null,starts_at.lte.${now}`)
-      .or(`ends_at.is.null,ends_at.gte.${now}`)
-      .limit(1)
-      .maybeSingle()
-    return data ?? null
-  },
-  ['bottom-announcement'],
-  { revalidate: 3600, tags: ['announcements'] }
-)
+function makeAnnouncementFetcher(sortOrder: number, cacheKey: string) {
+  return unstable_cache(
+    async () => {
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return null
+      const supabase = createPublicClient()
+      const now = new Date().toISOString()
+      const { data } = await supabase
+        .from('announcements')
+        .select('id,message,bg_color,text_color,link_url,link_text,is_active,sort_order')
+        .eq('is_active', true)
+        .eq('sort_order', sortOrder)
+        .or(`starts_at.is.null,starts_at.lte.${now}`)
+        .or(`ends_at.is.null,ends_at.gte.${now}`)
+        .limit(1)
+        .maybeSingle()
+      return data ?? null
+    },
+    [cacheKey],
+    { revalidate: 3600, tags: ['announcements'] }
+  )
+}
+
+const getBottomAnnouncement          = makeAnnouncementFetcher(1, 'bottom-announcement')
+const getAfterFeaturedAnnouncement   = makeAnnouncementFetcher(2, 'after-featured-announcement')
 
 const getStaticHomeData = unstable_cache(
   async () => {
@@ -94,7 +99,10 @@ const getDynamicHomeProducts = unstable_cache(
 export default async function HomePage() {
   const { banners, categories } = await getStaticHomeData()
   const { featured, deals } = await getDynamicHomeProducts()
-  const bottomAnnouncement = await getBottomAnnouncement()
+  const [bottomAnnouncement, afterFeaturedAnnouncement] = await Promise.all([
+    getBottomAnnouncement(),
+    getAfterFeaturedAnnouncement(),
+  ])
 
   const heroSlides    = banners.filter(b => b.sort_order === 0)
   const dealBanner    = banners.find(b => b.sort_order === 1) ?? null
@@ -196,6 +204,9 @@ export default async function HomePage() {
           </AnimatedGrid>
         </section>
       )}
+
+      {/* ── Announcement — below featured products (sort 2) ── */}
+      {afterFeaturedAnnouncement && <AnnouncementBar data={afterFeaturedAnnouncement} />}
 
       {/* ── Deals Banner — consistent min-height ── */}
       {deals && deals.length > 0 && (
