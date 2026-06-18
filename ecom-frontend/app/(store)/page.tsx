@@ -193,7 +193,7 @@ export default async function HomePage() {
 
       {/* ── Featured Products ── */}
       {featured && featured.length > 0 && (
-        <section className={`max-w-350 mx-auto px-4 sm:px-6 lg:px-10 ${afterFeaturedAnnouncement ? 'pb-8' : 'pb-14'}`}>
+        <section className={`max-w-350 mx-auto px-4 sm:px-6 lg:px-10 pt-14 ${afterFeaturedAnnouncement ? 'pb-8' : 'pb-14'}`}>
           <SectionHeader title="Featured Products" href="/products" linkLabel="View all →" />
           <AnimatedGrid className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 mt-7">
             {featured.map((p, i) => (
