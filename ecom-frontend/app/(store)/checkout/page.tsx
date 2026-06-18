@@ -223,12 +223,12 @@ export default function CheckoutPage() {
   return (
     <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
-      <div className="max-w-5xl mx-auto px-4 py-10">
-        <h1 className="text-2xl font-bold mb-8">Checkout</h1>
-        <div className="grid lg:grid-cols-5 gap-8">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-6 lg:py-10">
+        <h1 className="text-2xl font-bold mb-5 sm:mb-8">Checkout</h1>
+        <div className="grid lg:grid-cols-5 gap-5 lg:gap-8">
 
           {/* ── Left Column ─────────────────────────────────────────────────── */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-3 space-y-4 sm:space-y-6">
 
             {/* Sign-in nudge for guests */}
             {!user && (
@@ -243,16 +243,18 @@ export default function CheckoutPage() {
             )}
 
             {/* Address */}
-            <div className="border rounded-2xl p-6">
+            <div className="border rounded-2xl p-4 sm:p-6">
               <h2 className="font-semibold text-lg mb-4">Delivery Address</h2>
               <div style={{ display: 'none' }} aria-hidden="true">
                 <input ref={honeypotRef} name="lf_confirm_email" tabIndex={-1}
                   autoComplete="new-password" readOnly />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <Field label="Full Name" value={address.name} onChange={v => setAddress(a => ({ ...a, name: v }))} span={2} />
-                <PhoneField value={address.phone} onChange={v => setAddress(a => ({ ...a, phone: v }))} />
-                <Field label="Pincode" value={address.pincode} onChange={v => setAddress(a => ({ ...a, pincode: v }))} />
+                <div className="col-span-2 sm:col-span-1">
+                  <PhoneField value={address.phone} onChange={v => setAddress(a => ({ ...a, phone: v }))} />
+                </div>
+                <Field label="Pincode" value={address.pincode} onChange={v => setAddress(a => ({ ...a, pincode: v }))} mobileSpan={2} />
                 <Field label="Address Line 1" value={address.line1} onChange={v => setAddress(a => ({ ...a, line1: v }))} span={2} />
                 <Field label="Address Line 2 (optional)" value={address.line2} onChange={v => setAddress(a => ({ ...a, line2: v }))} span={2} />
                 <Field label="City" value={address.city} onChange={v => setAddress(a => ({ ...a, city: v }))} />
@@ -275,7 +277,7 @@ export default function CheckoutPage() {
             </div>
 
             {/* Payment Method */}
-            <div className="border rounded-2xl p-6">
+            <div className="border rounded-2xl p-4 sm:p-6">
               <h2 className="font-semibold text-lg mb-4">Payment Method</h2>
               <div className="space-y-3">
                 <PaymentCard
@@ -362,7 +364,7 @@ export default function CheckoutPage() {
 
             {/* UPI QR + UTR panel */}
             {paymentMethod === 'upi' && (
-              <div className="border border-purple-200 rounded-2xl p-6 space-y-5">
+              <div className="border border-purple-200 rounded-2xl p-4 sm:p-6 space-y-5">
                 <h2 className="font-semibold text-lg">Scan & Pay</h2>
                 <div className="flex flex-col sm:flex-row items-center gap-6">
                   <div className="bg-white p-3 rounded-xl border border-gray-200 shrink-0">
@@ -402,7 +404,7 @@ export default function CheckoutPage() {
             )}
 
             {/* Coupon */}
-            <div className="border rounded-2xl p-6">
+            <div className="border rounded-2xl p-4 sm:p-6">
               <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
                 <Tag size={16} className="text-gray-500" /> Coupon Code
               </h2>
@@ -425,8 +427,8 @@ export default function CheckoutPage() {
           </div>
 
           {/* ── Right Column: Order Summary ──────────────────────────────────── */}
-          <div className="lg:col-span-2">
-            <div className="bg-gray-50 rounded-2xl p-6 sticky top-24">
+          <div className="lg:col-span-2 order-first lg:order-last">
+            <div className="bg-gray-50 rounded-2xl p-4 sm:p-6 lg:sticky lg:top-24">
               <h2 className="font-bold text-lg mb-4">Order Summary</h2>
               <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
                 {items.map(i => (
@@ -557,11 +559,16 @@ function PaymentCard({ selected, onClick, icon, title, subtitle, badge, disabled
 }
 
 // ── Generic Text Field ────────────────────────────────────────────────────────
-function Field({ label, value, onChange, span }: {
-  label: string; value: string; onChange: (v: string) => void; span?: number
+function Field({ label, value, onChange, span, mobileSpan }: {
+  label: string; value: string; onChange: (v: string) => void; span?: number; mobileSpan?: number
 }) {
+  const cls = span === 2
+    ? 'col-span-2'
+    : mobileSpan === 2
+      ? 'col-span-2 sm:col-span-1'
+      : ''
   return (
-    <div className={span === 2 ? 'col-span-2' : ''}>
+    <div className={cls}>
       <label className="block text-xs text-gray-500 mb-1">{label}</label>
       <input value={value} onChange={e => onChange(e.target.value)}
         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black" />

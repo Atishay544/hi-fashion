@@ -159,16 +159,18 @@ export async function POST(req: NextRequest) {
 
     // If item has variant attributes, validate against SKU stock
     let matchedSkuId: string | null = null
-    if (item.variant_attributes && typeof item.variant_attributes === 'object' && Object.keys(item.variant_attributes).length > 0) {
+    const productSkus = (allSkus ?? []).filter(s => s.product_id === item.product_id)
+    const hasSkuMatrix = productSkus.length > 0
+
+    if (hasSkuMatrix && item.variant_attributes && typeof item.variant_attributes === 'object' && Object.keys(item.variant_attributes).length > 0) {
+      // Product has a SKU matrix — find exact SKU or reject
       const key = skuAttrKey(item.variant_attributes)
-      const sku = (allSkus ?? []).find(
-        s => s.product_id === item.product_id && skuAttrKey(s.attributes) === key
-      )
+      const sku = productSkus.find(s => skuAttrKey(s.attributes) === key)
       if (!sku) return NextResponse.json({ error: `Variant not found for: ${product.name}` }, { status: 400 })
       if (sku.stock < item.quantity) return NextResponse.json({ error: `Insufficient stock for: ${product.name} (${Object.values(item.variant_attributes).join(' / ')})` }, { status: 400 })
       matchedSkuId = sku.id
     } else {
-      // No variant — use product-level stock
+      // No SKU matrix (or no variant selected) — fall back to product-level stock
       if (product.stock !== null && product.stock < item.quantity)
         return NextResponse.json({ error: `Insufficient stock for: ${product.name}` }, { status: 400 })
     }
