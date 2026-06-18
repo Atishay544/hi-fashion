@@ -413,27 +413,6 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {/* Coupon */}
-            <div className="border rounded-2xl p-4 sm:p-6">
-              <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                <Tag size={16} className="text-gray-500" /> Coupon Code
-              </h2>
-              <div className="flex gap-2">
-                <input value={coupon} onChange={e => setCoupon(e.target.value.toUpperCase())}
-                  placeholder="Enter coupon code"
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm uppercase tracking-wider" />
-                <button onClick={applyCoupon}
-                  className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition">
-                  Apply
-                </button>
-              </div>
-              {couponError && <p className="text-red-500 text-xs mt-2">{couponError}</p>}
-              {couponResult && (
-                <p className="text-green-600 text-sm mt-2 font-medium">
-                  Coupon applied! You save {formatPrice(couponResult.discount)}
-                </p>
-              )}
-            </div>
           </div>
 
           {/* ── Right Column: Order Summary ──────────────────────────────────── */}
@@ -450,6 +429,31 @@ export default function CheckoutPage() {
                     <span className="font-medium shrink-0">{formatPrice(i.price * i.quantity)}</span>
                   </div>
                 ))}
+              </div>
+
+              {/* Coupon inside summary */}
+              <div className="border-t pt-3 mb-3">
+                <div className="flex gap-2">
+                  <div className="flex-1 flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white">
+                    <Tag size={13} className="text-gray-400 ml-2.5 shrink-0" />
+                    <input
+                      value={coupon}
+                      onChange={e => setCoupon(e.target.value.toUpperCase())}
+                      placeholder="Coupon code"
+                      className="flex-1 px-2 py-2 text-sm uppercase tracking-wider outline-none bg-transparent"
+                    />
+                  </div>
+                  <button onClick={applyCoupon}
+                    className="bg-black text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition shrink-0">
+                    Apply
+                  </button>
+                </div>
+                {couponError && <p className="text-red-500 text-xs mt-1.5">{couponError}</p>}
+                {couponResult && (
+                  <p className="text-green-600 text-xs mt-1.5 font-medium flex items-center gap-1">
+                    ✓ Coupon applied — you save {formatPrice(couponResult.discount)}
+                  </p>
+                )}
               </div>
 
               <div className="border-t pt-3 space-y-1.5 text-sm">
