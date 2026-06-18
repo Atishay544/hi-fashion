@@ -193,9 +193,9 @@ export default async function HomePage() {
 
       {/* ── Featured Products ── */}
       {featured && featured.length > 0 && (
-        <section className={`max-w-350 mx-auto px-4 sm:px-6 lg:px-10 pt-14 ${afterFeaturedAnnouncement ? 'pb-8' : 'pb-14'}`}>
+        <section className={`max-w-350 mx-auto px-4 sm:px-6 lg:px-10 pt-8 ${afterFeaturedAnnouncement ? 'pb-6' : 'pb-12'}`}>
           <SectionHeader title="Featured Products" href="/products" linkLabel="View all →" />
-          <AnimatedGrid className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 mt-7">
+          <AnimatedGrid className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 mt-6">
             {featured.map((p, i) => (
               <AnimatedItem key={p.id}>
                 <ProductCard product={p} priority={i < 4} />
@@ -210,7 +210,7 @@ export default async function HomePage() {
 
       {/* ── Deals Banner — consistent min-height ── */}
       {deals && deals.length > 0 && (
-        <section className={`max-w-350 mx-auto px-4 sm:px-6 lg:px-10 ${afterFeaturedAnnouncement ? 'pt-8' : ''} pb-14`}>
+        <section className={`max-w-350 mx-auto px-4 sm:px-6 lg:px-10 ${afterFeaturedAnnouncement ? 'pt-8' : 'pt-6'} pb-8`}>
           <div
             className={`relative overflow-hidden rounded-2xl min-h-50 flex flex-col sm:flex-row items-center justify-between gap-6 px-8 sm:px-12 py-10 ${
               dealBanner ? '' : 'bg-linear-to-r from-rose-500 to-orange-400'
@@ -247,9 +247,9 @@ export default async function HomePage() {
 
       {/* ── Deals Grid ── */}
       {deals && deals.length > 0 && (
-        <section className="max-w-350 mx-auto px-4 sm:px-6 lg:px-10 pb-20">
+        <section className="max-w-350 mx-auto px-4 sm:px-6 lg:px-10 pt-8 pb-14">
           <SectionHeader title="Deals & Offers" href="/products?sale=true" linkLabel="View all →" />
-          <AnimatedGrid className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 mt-7">
+          <AnimatedGrid className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 mt-6">
             {deals.map(p => (
               <AnimatedItem key={p.id}>
                 <ProductCard product={p} />
