@@ -47,12 +47,12 @@ export const useCartStore = create<CartStore>()(
           return {
             items: state.items.map(i =>
               itemKey(i.id, i.variantAttributes) === key
-                ? { ...i, quantity: i.quantity + item.quantity }
+                ? { ...i, quantity: Math.min(3, i.quantity + item.quantity) }
                 : i
             ),
           }
         }
-        return { items: [...state.items, item] }
+        return { items: [...state.items, { ...item, quantity: Math.min(3, item.quantity) }] }
       }),
 
       removeItem: (key) => set(state => ({
@@ -65,7 +65,7 @@ export const useCartStore = create<CartStore>()(
         }
         return {
           items: state.items.map(i =>
-            itemKey(i.id, i.variantAttributes) === key ? { ...i, quantity } : i
+            itemKey(i.id, i.variantAttributes) === key ? { ...i, quantity: Math.min(3, quantity) } : i
           ),
         }
       }),

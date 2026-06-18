@@ -7,7 +7,10 @@ import { rateLimit } from '@/lib/security/rate-limit'
 import { assertSameOrigin } from '@/lib/security/csrf'
 import { revalidateTag } from 'next/cache'
 
-type PaymentMethod = 'online' | 'cod' | 'cod_upfront' | 'upi'
+type PaymentMethod = 'online' | 'cod' | 'cod_upfront' | 'upi' | 'partial_cod'
+
+const COD_LIMIT = 7000
+const PARTIAL_COD_PCT = 20
 
 function getRazorpay() {
   return new Razorpay({
@@ -54,8 +57,8 @@ export async function POST(req: NextRequest) {
 
   for (const item of items) {
     const qty = Number(item.quantity)
-    if (!Number.isInteger(qty) || qty < 1 || qty > 100)
-      return NextResponse.json({ error: 'Invalid item quantity' }, { status: 400 })
+    if (!Number.isInteger(qty) || qty < 1 || qty > 3)
+      return NextResponse.json({ error: 'Maximum 3 units per product allowed' }, { status: 400 })
     item.quantity = qty
   }
 
@@ -65,7 +68,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Missing address field: ${f}` }, { status: 400 })
   }
 
-  const validPaymentMethods: PaymentMethod[] = ['online', 'cod', 'cod_upfront', 'upi']
+  const validPaymentMethods: PaymentMethod[] = ['online', 'cod', 'cod_upfront', 'upi', 'partial_cod']
   if (!validPaymentMethods.includes(payment_method))
     return NextResponse.json({ error: 'Invalid payment method' }, { status: 400 })
 
@@ -89,8 +92,15 @@ export async function POST(req: NextRequest) {
   // ── 3. Validate products + compute subtotal ───────────────────────────────
   const admin = createAdminClient()
 
+  // Block full COD for high-value orders
+  if (payment_method === 'cod' && body.total_hint > COD_LIMIT) {
+    return NextResponse.json({
+      error: `Cash on Delivery is not available for orders above ₹${COD_LIMIT.toLocaleString('en-IN')}. Please use Partial COD (${PARTIAL_COD_PCT}% advance) or pay online.`,
+    }, { status: 400 })
+  }
+
   // COD flood protection — by user_id for logged-in, by phone for guests
-  if (payment_method === 'cod' || payment_method === 'cod_upfront') {
+  if (payment_method === 'cod' || payment_method === 'cod_upfront' || payment_method === 'partial_cod') {
     if (user) {
       const { count } = await admin
         .from('orders')
@@ -226,9 +236,18 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // partial_cod: validate total > limit, compute 20% advance
+  if (payment_method === 'partial_cod' && total <= COD_LIMIT) {
+    return NextResponse.json({
+      error: `Partial COD is only required for orders above ₹${COD_LIMIT.toLocaleString('en-IN')}.`,
+    }, { status: 400 })
+  }
+
   const amountToCharge = (payment_method === 'cod_upfront' && offerUpfrontPct !== null)
     ? Math.round(total * offerUpfrontPct) / 100
-    : total
+    : payment_method === 'partial_cod'
+      ? Math.round(total * PARTIAL_COD_PCT) / 100
+      : total
 
   // ── 5. Build order metadata ───────────────────────────────────────────────
   const orderMetadata: Record<string, any> = { payment_method }
@@ -244,6 +263,11 @@ export async function POST(req: NextRequest) {
   if (payment_method === 'cod') {
     orderMetadata.amount_on_delivery = total
   }
+  if (payment_method === 'partial_cod') {
+    orderMetadata.advance_pct        = PARTIAL_COD_PCT
+    orderMetadata.amount_charged     = amountToCharge
+    orderMetadata.amount_on_delivery = total - amountToCharge
+  }
   if (payment_method === 'upi') {
     orderMetadata.utr_number = utr_number.trim().toUpperCase()
   }
@@ -252,6 +276,7 @@ export async function POST(req: NextRequest) {
   const initialStatus = payment_method === 'cod' ? 'confirmed' : 'pending'
   const paymentStatus = payment_method === 'cod' ? 'cod'
     : payment_method === 'cod_upfront' ? 'partial'
+    : payment_method === 'partial_cod' ? 'partial'
     : payment_method === 'upi' ? 'upi_pending'
     : 'prepaid'
 

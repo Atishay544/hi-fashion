@@ -67,7 +67,7 @@ export default function AddToCartButton({ product, variantAttributes, skuLabel, 
         <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
           <button onClick={() => setQty(q => Math.max(1, q - 1))} className="px-3 py-1.5 hover:bg-gray-100 transition text-lg">−</button>
           <span className="px-4 py-1.5 text-sm font-medium">{qty}</span>
-          <button onClick={() => setQty(q => Math.min(product.stock, q + 1))} className="px-3 py-1.5 hover:bg-gray-100 transition text-lg">+</button>
+          <button onClick={() => setQty(q => Math.min(3, product.stock, q + 1))} className="px-3 py-1.5 hover:bg-gray-100 transition text-lg">+</button>
         </div>
       </div>
       <button

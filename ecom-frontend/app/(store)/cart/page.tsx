@@ -7,7 +7,7 @@ import { Trash2, ShoppingBag } from 'lucide-react'
 import { formatPrice } from '@/lib/utils'
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, clearCart, total } = useCartStore()
+  const { items, updateQuantity, removeItem, clearCart, total, getKey } = useCartStore()
 
   if (items.length === 0) {
     return (
@@ -47,13 +47,13 @@ export default function CartPage() {
                 <p className="text-sm text-gray-500 mt-0.5">{formatPrice(item.price)} each</p>
                 <div className="flex items-center gap-3 mt-2">
                   <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-                    <button onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                    <button onClick={() => updateQuantity(getKey(item), item.quantity - 1)}
                       className="px-2.5 py-1 hover:bg-gray-100 text-lg">−</button>
                     <span className="px-3 text-sm font-medium">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="px-2.5 py-1 hover:bg-gray-100 text-lg">+</button>
+                    <button onClick={() => updateQuantity(getKey(item), Math.min(3, item.quantity + 1))}
+                      className="px-2.5 py-1 hover:bg-gray-100 text-lg" disabled={item.quantity >= 3}>+</button>
                   </div>
-                  <button onClick={() => removeItem(item.id)} className="text-gray-400 hover:text-red-500 transition">
+                  <button onClick={() => removeItem(getKey(item))} className="text-gray-400 hover:text-red-500 transition">
                     <Trash2 size={16} />
                   </button>
                 </div>

@@ -23,7 +23,10 @@ interface Offer {
   type: string; upfront_pct: number | null; discount_pct: number | null
 }
 
-type PaymentMethod = 'online' | 'cod' | 'cod_upfront' | 'upi'
+type PaymentMethod = 'online' | 'cod' | 'cod_upfront' | 'upi' | 'partial_cod'
+
+const COD_LIMIT = 7000
+const PARTIAL_COD_PCT = 20
 
 const EMPTY_ADDRESS: Address = { name: '', phone: '', line1: '', line2: '', city: '', state: '', pincode: '' }
 
@@ -67,6 +70,10 @@ export default function CheckoutPage() {
   const subtotal   = total()
   const discount   = couponResult?.discount ?? 0
   const grandTotal = Math.max(0, subtotal - discount)
+
+  const isCodRestricted = grandTotal > COD_LIMIT
+  const partialCodAdvance = Math.round(grandTotal * PARTIAL_COD_PCT) / 100
+  const partialCodOnDelivery = grandTotal - partialCodAdvance
 
   const codOffers = offers.filter(o => o.type === 'cod_upfront')
   const UPI_ID  = process.env.NEXT_PUBLIC_UPI_ID  ?? ''
@@ -145,6 +152,7 @@ export default function CheckoutPage() {
         payment_method:   paymentMethod,
         offer_id:         selectedOffer?.id ?? null,
         utr_number:       paymentMethod === 'upi' ? utrNumber.trim().toUpperCase() : undefined,
+        total_hint:       grandTotal,
       }, { headers })
 
       const successPath = user
@@ -206,7 +214,11 @@ export default function CheckoutPage() {
     )
   }
 
-  const payNow = codBreakdown ? codBreakdown.upfront : grandTotal
+  const payNow = paymentMethod === 'partial_cod'
+    ? partialCodAdvance
+    : codBreakdown
+      ? codBreakdown.upfront
+      : grandTotal
 
   return (
     <>
@@ -276,12 +288,27 @@ export default function CheckoutPage() {
                 />
                 <PaymentCard
                   selected={paymentMethod === 'cod'}
-                  onClick={() => selectPaymentMethod('cod')}
+                  onClick={() => !isCodRestricted && selectPaymentMethod('cod')}
+                  disabled={isCodRestricted}
                   icon={<Truck size={20} className="text-orange-600" />}
                   title="Cash on Delivery"
-                  subtitle="Pay when your order arrives at your doorstep"
-                  badge={<span className="text-xs bg-orange-50 text-orange-700 border border-orange-200 rounded-full px-2 py-0.5 font-medium">No advance payment</span>}
+                  subtitle={isCodRestricted
+                    ? `Not available for orders above ₹${COD_LIMIT.toLocaleString('en-IN')} — use Partial COD below`
+                    : 'Pay when your order arrives at your doorstep'}
+                  badge={isCodRestricted
+                    ? <span className="text-xs bg-red-50 text-red-600 border border-red-200 rounded-full px-2 py-0.5 font-medium">Unavailable above ₹{COD_LIMIT.toLocaleString('en-IN')}</span>
+                    : <span className="text-xs bg-orange-50 text-orange-700 border border-orange-200 rounded-full px-2 py-0.5 font-medium">No advance payment</span>}
                 />
+                {isCodRestricted && (
+                  <PaymentCard
+                    selected={paymentMethod === 'partial_cod'}
+                    onClick={() => selectPaymentMethod('partial_cod')}
+                    icon={<Truck size={20} className="text-amber-600" />}
+                    title="Partial COD (High-value order)"
+                    subtitle={`Pay ${PARTIAL_COD_PCT}% now (${formatPrice(partialCodAdvance)}) via Razorpay + ${formatPrice(partialCodOnDelivery)} on delivery`}
+                    badge={<span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5 font-medium">20% advance required</span>}
+                  />
+                )}
                 <PaymentCard
                   selected={paymentMethod === 'upi'}
                   onClick={() => selectPaymentMethod('upi')}
@@ -436,6 +463,7 @@ export default function CheckoutPage() {
                   {paymentMethod === 'online' && <><CreditCard size={14} className="text-blue-600" /><span>Pay online via Razorpay</span></>}
                   {paymentMethod === 'cod' && <><Truck size={14} className="text-orange-600" /><span>Cash on Delivery</span></>}
                   {paymentMethod === 'cod_upfront' && <><Zap size={14} className="text-green-600" /><span>Pay {formatPrice(codBreakdown?.upfront ?? 0)} now + {formatPrice(codBreakdown?.discounted ?? 0)} on delivery</span></>}
+                  {paymentMethod === 'partial_cod' && <><Truck size={14} className="text-amber-600" /><span>Pay {formatPrice(partialCodAdvance)} now + {formatPrice(partialCodOnDelivery)} on delivery</span></>}
                   {paymentMethod === 'upi' && <><Smartphone size={14} className="text-purple-600" /><span>UPI Transfer</span></>}
                 </div>
               </div>
@@ -450,9 +478,11 @@ export default function CheckoutPage() {
                     ? `Place Order — Pay ${formatPrice(grandTotal)} on Delivery`
                     : paymentMethod === 'upi'
                       ? `Place Order — UPI ₹${grandTotal.toFixed(2)}`
-                      : paymentMethod === 'cod_upfront' && codBreakdown
-                        ? `Pay ${formatPrice(codBreakdown.upfront)} Now`
-                        : `Pay ${formatPrice(grandTotal)}`}
+                      : paymentMethod === 'partial_cod'
+                        ? `Pay ${formatPrice(partialCodAdvance)} Now (${PARTIAL_COD_PCT}% Advance)`
+                        : paymentMethod === 'cod_upfront' && codBreakdown
+                          ? `Pay ${formatPrice(codBreakdown.upfront)} Now`
+                          : `Pay ${formatPrice(grandTotal)}`}
               </button>
 
               <p className="text-center text-xs text-gray-400 mt-3">
@@ -493,15 +523,19 @@ function PhoneField({ value, onChange }: { value: string; onChange: (v: string) 
 }
 
 // ── Payment Card ──────────────────────────────────────────────────────────────
-function PaymentCard({ selected, onClick, icon, title, subtitle, badge }: {
+function PaymentCard({ selected, onClick, icon, title, subtitle, badge, disabled }: {
   selected: boolean; onClick: () => void
   icon: React.ReactNode; title: string; subtitle: string
-  badge?: React.ReactNode
+  badge?: React.ReactNode; disabled?: boolean
 }) {
   return (
-    <div onClick={onClick}
-      className={`border rounded-xl p-4 cursor-pointer transition-all ${
-        selected ? 'border-black bg-black/3 ring-1 ring-black' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+    <div onClick={disabled ? undefined : onClick}
+      className={`border rounded-xl p-4 transition-all ${
+        disabled
+          ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
+          : selected
+            ? 'border-black bg-black/3 ring-1 ring-black cursor-pointer'
+            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 cursor-pointer'
       }`}>
       <div className="flex items-center gap-3">
         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
