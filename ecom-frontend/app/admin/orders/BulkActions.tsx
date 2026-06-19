@@ -49,6 +49,7 @@ const PM_BADGES: Record<string, { label: string; cls: string }> = {
   cod:         { label: 'COD',         cls: 'bg-orange-100 text-orange-700' },
   cod_upfront: { label: 'COD Upfront', cls: 'bg-teal-100 text-teal-700' },
   upi:         { label: 'UPI',         cls: 'bg-purple-100 text-purple-700' },
+  partial_cod: { label: 'Partial COD', cls: 'bg-amber-100 text-amber-700' },
 }
 
 type SortKey = 'id' | 'customerName' | 'total' | 'status' | 'payment' | 'created_at'

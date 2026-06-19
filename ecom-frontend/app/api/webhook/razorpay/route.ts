@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   // ── 3. Find the order by razorpay_order_id ────────────────────────────────
   const { data: order } = await admin
     .from('orders')
-    .select('id, status, user_id, coupon_code, total, discount_amount, subtotal, metadata, shipping_address, order_items(unit_price, quantity, snapshot)')
+    .select('id, status, user_id, coupon_code, total, discount_amount, subtotal, metadata, shipping_address, order_items(product_id, sku_id, unit_price, quantity, snapshot)')
     .eq('razorpay_order_id', razorpayOrderId)
     .maybeSingle()
 
@@ -75,13 +75,21 @@ export async function POST(req: NextRequest) {
     updated_at:          new Date().toISOString(),
   }).eq('id', order.id)
 
-  // ── 6. Reserve stock ──────────────────────────────────────────────────────
+  // ── 6. Reserve stock + decrement SKU stock ────────────────────────────────
   const items = (order as any).order_items ?? []
   await Promise.allSettled(
     items.map((i: any) =>
       admin.rpc('reserve_stock', { p_product_id: i.product_id, p_quantity: i.quantity })
     )
   )
+  const skuItems = items.filter((i: any) => i.sku_id)
+  if (skuItems.length > 0) {
+    await Promise.allSettled(
+      skuItems.map((i: any) =>
+        admin.rpc('decrement_sku_stock', { p_sku_id: i.sku_id, p_quantity: i.quantity })
+      )
+    )
+  }
 
   // ── 7. Increment coupon uses ──────────────────────────────────────────────
   if ((order as any).coupon_code) {

@@ -42,19 +42,22 @@ export default function OrderDetailActions({ orderId, currentStatus, currentTrac
   }
 
   async function handleConfirmUpi() {
-    if (!confirm(`Confirm UPI payment with UTR: ${utrNumber}?\n\nThis will mark the order as Confirmed and payment as Prepaid.`)) return
+    const isPartialCod = paymentStatus === 'partial'
+    const label = isPartialCod ? 'Partial COD advance' : 'UPI payment'
+    const newPaymentStatus = isPartialCod ? 'upi_confirmed' : 'prepaid'
+    if (!confirm(`Confirm ${label} with UTR: ${utrNumber}?\n\nThis will mark the order as Confirmed.`)) return
     setConfirming(true)
     setMessage('')
     try {
       const res = await fetch(`/api/admin/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'confirmed', payment_status: 'prepaid' }),
+        body: JSON.stringify({ status: 'confirmed', payment_status: newPaymentStatus }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Confirmation failed')
       setStatus('confirmed')
-      setMessage('UPI payment confirmed. Order is now Confirmed.')
+      setMessage(`${label} confirmed. Order is now Confirmed.`)
       router.refresh()
     } catch (e: any) {
       setMessage(`Error: ${e.message}`)
@@ -63,7 +66,8 @@ export default function OrderDetailActions({ orderId, currentStatus, currentTrac
     }
   }
 
-  const isUpiPending = paymentStatus === 'upi_pending'
+  const isUpiPending    = paymentStatus === 'upi_pending'
+  const isPartialPending = paymentStatus === 'partial' && !!utrNumber
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -71,16 +75,20 @@ export default function OrderDetailActions({ orderId, currentStatus, currentTrac
 
       {/* UPI confirmation panel */}
       {utrNumber && (
-        <div className={`mb-5 rounded-xl p-4 border ${isUpiPending ? 'bg-purple-50 border-purple-300' : 'bg-green-50 border-green-300'}`}>
-          <p className="text-xs font-semibold uppercase tracking-wide mb-2 ${isUpiPending ? 'text-purple-700' : 'text-green-700'}">
-            {isUpiPending ? 'UPI Payment — Awaiting Verification' : 'UPI Payment — Confirmed'}
+        <div className={`mb-5 rounded-xl p-4 border ${(isUpiPending || isPartialPending) ? 'bg-purple-50 border-purple-300' : 'bg-green-50 border-green-300'}`}>
+          <p className={`text-xs font-semibold uppercase tracking-wide mb-2 ${(isUpiPending || isPartialPending) ? 'text-purple-700' : 'text-green-700'}`}>
+            {isPartialPending
+              ? 'Partial COD Advance — Awaiting Verification'
+              : isUpiPending
+                ? 'UPI Payment — Awaiting Verification'
+                : 'UPI Payment — Confirmed'}
           </p>
           <div className="flex items-center gap-3 flex-wrap">
             <div>
               <p className="text-xs text-gray-500 mb-0.5">UTR / Transaction ID</p>
               <p className="font-mono font-bold text-lg tracking-wider text-gray-900">{utrNumber}</p>
             </div>
-            {isUpiPending && (
+            {(isUpiPending || isPartialPending) && (
               <button
                 onClick={handleConfirmUpi}
                 disabled={confirming}
@@ -89,7 +97,7 @@ export default function OrderDetailActions({ orderId, currentStatus, currentTrac
                 {confirming ? 'Confirming…' : 'Confirm Payment'}
               </button>
             )}
-            {!isUpiPending && (
+            {!isUpiPending && !isPartialPending && (
               <span className="ml-auto text-green-700 font-semibold text-sm">Payment Confirmed</span>
             )}
           </div>

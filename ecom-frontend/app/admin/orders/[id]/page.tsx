@@ -59,6 +59,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
     cod:         { label: 'Cash on Delivery', color: 'bg-orange-100 text-orange-800' },
     cod_upfront: { label: 'COD Upfront',      color: 'bg-green-100 text-green-800' },
     upi:         { label: 'UPI Transfer',     color: 'bg-purple-100 text-purple-800' },
+    partial_cod: { label: 'Partial COD',      color: 'bg-amber-100 text-amber-800' },
   }
 
   const PS_LABELS: Record<string, { label: string; color: string }> = {

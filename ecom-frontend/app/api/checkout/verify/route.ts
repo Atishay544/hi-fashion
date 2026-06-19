@@ -83,10 +83,10 @@ export async function POST(req: NextRequest) {
     await admin.rpc('increment_coupon_uses', { p_code: order.coupon_code }).catch(() => {})
   }
 
-  // ── 7. Reserve stock ──────────────────────────────────────────────────────
+  // ── 7. Reserve stock + decrement SKU stock ────────────────────────────────
   const { data: orderItems } = await admin
     .from('order_items')
-    .select('product_id, quantity')
+    .select('product_id, sku_id, quantity')
     .eq('order_id', order_id)
 
   if (orderItems) {
@@ -95,6 +95,14 @@ export async function POST(req: NextRequest) {
         admin.rpc('reserve_stock', { p_product_id: item.product_id, p_quantity: item.quantity })
       )
     )
+    const skuItems = orderItems.filter(i => i.sku_id)
+    if (skuItems.length > 0) {
+      await Promise.allSettled(
+        skuItems.map(item =>
+          admin.rpc('decrement_sku_stock', { p_sku_id: item.sku_id, p_quantity: item.quantity })
+        )
+      )
+    }
   }
 
   // ── 8. Send confirmation emails ───────────────────────────────────────────

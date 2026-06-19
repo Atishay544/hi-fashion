@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export interface SkuRow {
   attributes: Record<string, string>  // e.g. { Color: 'Red', Size: 'S' }
@@ -44,10 +44,14 @@ export default function SkuMatrix({ variants, value, onChange }: Props) {
     return combos.map(attrs => ({ attributes: attrs, stock: map.get(comboKey(attrs)) ?? 0 }))
   })
 
+  // Always keep a ref to the latest rows so the effect below never reads a stale closure
+  const rowsRef = useRef(rows)
+  rowsRef.current = rows
+
   // Re-sync when variants change (new combo set)
   useEffect(() => {
     const newCombos = cartesian(variants)
-    const map = new Map(rows.map(r => [comboKey(r.attributes), r.stock]))
+    const map = new Map(rowsRef.current.map(r => [comboKey(r.attributes), r.stock]))
     const next = newCombos.map(attrs => ({ attributes: attrs, stock: map.get(comboKey(attrs)) ?? 0 }))
     setRows(next)
     onChange(next)

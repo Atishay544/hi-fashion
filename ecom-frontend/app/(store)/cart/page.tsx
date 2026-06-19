@@ -35,7 +35,7 @@ export default function CartPage() {
         {/* Items */}
         <div className="lg:col-span-2 space-y-4">
           {items.map(item => (
-            <div key={item.id} className="flex gap-4 border rounded-xl p-4">
+            <div key={getKey(item)} className="flex gap-4 border rounded-xl p-4">
               <div className="w-20 h-20 shrink-0 relative rounded-lg overflow-hidden bg-gray-100">
                 {item.image
                   ? <Image src={item.image} alt={item.name} fill className="object-cover" />
@@ -44,6 +44,9 @@ export default function CartPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{item.name}</p>
+                {item.variantLabel && (
+                  <p className="text-xs text-gray-500 mt-0.5">{item.variantLabel}</p>
+                )}
                 <p className="text-sm text-gray-500 mt-0.5">{formatPrice(item.price)} each</p>
                 <div className="flex items-center gap-3 mt-2">
                   <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">

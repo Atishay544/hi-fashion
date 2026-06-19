@@ -7,6 +7,8 @@ const ALLOWED_STATUSES = new Set([
   'shipped', 'delivered', 'cancelled', 'refunded',
 ])
 
+const TERMINAL_STATUSES = new Set(['cancelled', 'refunded'])
+
 const ALLOWED_PAYMENT_STATUSES = new Set([
   'prepaid', 'cod', 'partial', 'upi_pending', 'upi_confirmed',
 ])
@@ -37,6 +39,38 @@ export async function PATCH(req: NextRequest, { params }: PageProps) {
       return NextResponse.json({ error: 'Invalid payment_status' }, { status: 400 })
     }
     payload.payment_status = body.payment_status
+  }
+
+  // Restore stock when cancelling/refunding — only if not already in a terminal state
+  if (body.status && TERMINAL_STATUSES.has(body.status)) {
+    const { data: currentOrder } = await admin
+      .from('orders')
+      .select('status')
+      .eq('id', id)
+      .single()
+
+    if (currentOrder && !TERMINAL_STATUSES.has(currentOrder.status)) {
+      const { data: orderItems } = await admin
+        .from('order_items')
+        .select('product_id, sku_id, quantity')
+        .eq('order_id', id)
+
+      if (orderItems && orderItems.length > 0) {
+        await Promise.allSettled(
+          orderItems.map(item =>
+            admin.rpc('restore_stock', { p_product_id: item.product_id, p_quantity: item.quantity })
+          )
+        )
+        const skuItems = orderItems.filter(i => i.sku_id)
+        if (skuItems.length > 0) {
+          await Promise.allSettled(
+            skuItems.map(item =>
+              admin.rpc('restore_sku_stock', { p_sku_id: item.sku_id, p_quantity: item.quantity })
+            )
+          )
+        }
+      }
+    }
   }
 
   const { error } = await admin.from('orders').update(payload).eq('id', id)

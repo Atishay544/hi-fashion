@@ -105,8 +105,7 @@ export default function ProductForm({ product, categories, initialVariants = [],
       idx === varIdx ? { ...row, options: row.options.filter((_, oi) => oi !== optIdx) } : row
     ))
     if (variantName.trim() && removedValue) {
-      const removeKey = comboKey({ [variantName]: removedValue })
-      setSkus(prev => prev.filter(s => comboKey(s.attributes) !== removeKey))
+      setSkus(prev => prev.filter(s => s.attributes[variantName] !== removedValue))
     }
   }
   function setOptionImages(varIdx: number, optIdx: number, images: string[]) {

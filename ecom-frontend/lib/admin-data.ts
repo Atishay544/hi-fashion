@@ -35,8 +35,8 @@ export const getAdminDashboard = unstable_cache(
         .gte('created_at', d30.toISOString()),
       (db as any).from('page_views').select('id', { count: 'exact', head: true })
         .gte('created_at', today.toISOString()),
-      db.from('products').select('id, name, stock')
-        .lte('stock', 5).eq('is_active', true).order('stock', { ascending: true }).limit(6),
+      db.from('products').select('id, name, stock, product_skus(stock)')
+        .eq('is_active', true).order('stock', { ascending: true }).limit(50),
     ])
 
     const REVENUE_STATUSES = new Set(['confirmed','cod_upfront_paid','processing','shipped','delivered'])
@@ -93,7 +93,15 @@ export const getAdminDashboard = unstable_cache(
         customerName: (o.shipping_address as Record<string,string>|null)?.name ?? null,
         created_at: o.created_at,
       })),
-      lowStock: ((lowStockRes.data ?? []) as { id: string; name: string; stock: number }[]).map(p => p),
+      lowStock: ((lowStockRes.data ?? []) as { id: string; name: string; stock: number; product_skus?: { stock: number }[] }[])
+        .map(p => {
+          const skuTotal = (p.product_skus ?? []).reduce((s, sk) => s + sk.stock, 0)
+          const effectiveStock = skuTotal > 0 ? skuTotal : p.stock
+          return { id: p.id, name: p.name, stock: effectiveStock }
+        })
+        .filter(p => p.stock <= 10)
+        .sort((a, b) => a.stock - b.stock)
+        .slice(0, 6),
       activePartners: (partnersRes as any).count ?? 0,
       pendingAction: (ordersByStatus['confirmed'] ?? 0) + (ordersByStatus['cod_upfront_paid'] ?? 0),
     }
