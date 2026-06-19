@@ -5,8 +5,8 @@ const isDev = process.env.NODE_ENV === "development";
 // In dev: allow unsafe-eval (React needs it for debugging)
 // In prod: strict CSP, no eval
 const cspScriptSrc = isDev
-  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://cdn.razorpay.com"
-  : "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://cdn.razorpay.com";
+  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://cdn.razorpay.com https://www.googletagmanager.com"
+  : "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://cdn.razorpay.com https://www.googletagmanager.com";
 
 const securityHeaders = [
   { key: "X-DNS-Prefetch-Control", value: "on" },
@@ -23,8 +23,8 @@ const securityHeaders = [
       "default-src 'self'",
       cspScriptSrc,
       "frame-src https://checkout.razorpay.com https://api.razorpay.com",
-      "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com https://*.supabase.co wss://*.supabase.co",
-      "img-src 'self' data: blob: https://*.supabase.co https://*.razorpay.com",
+      "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com",
+      "img-src 'self' data: blob: https://*.supabase.co https://*.razorpay.com https://www.googletagmanager.com",
       "style-src 'self' 'unsafe-inline'",
     ].join("; "),
   },

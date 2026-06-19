@@ -179,13 +179,13 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col">{children}<Analytics /></body>
-      <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
-      <Script id="ga4-init" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: `
+      {GA_ID && <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />}
+      {GA_ID && <Script id="ga4-init" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: `
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
         gtag('config', '${GA_ID}', { send_page_view: true });
-      `}} />
+      `}} />}
     </html>
   );
 }
