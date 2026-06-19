@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
   display: "swap",
 });
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://hifashions.shop'
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
@@ -35,9 +35,10 @@ export const metadata: Metadata = {
   },
   description: "Shop the latest fashion online at Hi Fashion. Trendy clothing, accessories, and more. Free shipping above ₹499. 7-day returns. Trusted across India.",
   keywords: [
-    "hi fashion", "hi-fashions", "fashion online india", "buy clothes online india",
-    "trendy clothing india", "fashion store india", "online fashion india",
-    "clothing shop india", "free shipping fashion india",
+    "hi fashion", "hi-fashions", "hifashions", "hifashions.shop",
+    "fashion online india", "buy clothes online india", "trendy clothing india",
+    "fashion store india", "online fashion india", "clothing shop india",
+    "free shipping fashion india", "stylish clothes india", "fashion shopping india",
   ],
   authors: [{ name: "Parv Jain", url: BASE_URL }],
   creator: "Parv Jain",
@@ -135,7 +136,9 @@ const orgJsonLd = {
           { "@type": "OfferCatalog", name: "Accessories", url: `${BASE_URL}/products` },
         ],
       },
-      sameAs: [],
+      sameAs: [
+        "https://hifashions.shop",
+      ],
     },
     {
       "@type": "WebSite",
