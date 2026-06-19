@@ -1,26 +1,41 @@
 # Hi Fashion
+
 > India's online fashion store for trendy clothing and accessories.
 
 ## About
+
 Hi Fashion (Hi-Fashions) is an Indian e-commerce fashion store offering trendy clothing, apparel, and accessories for men, women, and kids. Every product is shipped pan-India with care.
 
 Founded by Parv Jain. Brand: Hi Fashion (Hi-Fashions).
 
 ## What We Sell
+
 - Men's clothing — T-shirts, shirts, trousers, ethnic wear
 - Women's clothing — dresses, kurtas, tops, ethnic wear
 - Kids' clothing — casual and formal wear
 - Fashion accessories
 
 ## Why Customers Choose Hi Fashion
+
 - Trendy, affordable fashion
 - Free shipping on orders above ₹499 (pan-India delivery)
 - Secure payment — Cash on Delivery, UPI, cards, net banking
 - 7-day hassle-free returns
 
+## Site Pages
+
+- [Home](https://www.hifashions.shop/)
+- [All Products](https://www.hifashions.shop/products)
+- [Cart](https://www.hifashions.shop/cart)
+- [Wishlist](https://www.hifashions.shop/wishlist)
+- [Search](https://www.hifashions.shop/search)
+- [Account Login](https://www.hifashions.shop/login)
+
 ## Contact
+
 - Email: parvjain012@gmail.com
 - Phone: +91 89790 13817
 
-## Optional — AI Crawlers Welcome
+## AI Crawlers
+
 This site welcomes indexing by AI assistants including GPTBot, ClaudeBot, PerplexityBot, and Google-Extended to improve answer quality for users asking about fashion in India.

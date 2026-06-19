@@ -53,7 +53,12 @@ export default function Header({ categories }: { categories: any[] }) {
         <div className="max-w-350 mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center gap-4">
 
           {/* Mobile menu toggle */}
-          <button className="md:hidden text-gray-700 hover:text-black transition" onClick={() => setMobileOpen(!mobileOpen)}>
+          <button
+            className="md:hidden text-gray-700 hover:text-black transition p-2 -ml-2 rounded-lg min-w-11 min-h-11 flex items-center justify-center"
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen(!mobileOpen)}
+          >
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
 
@@ -181,19 +186,23 @@ export default function Header({ categories }: { categories: any[] }) {
 
           <div className="ml-auto flex items-center gap-1">
             {/* Search (mobile) */}
-            <button className="md:hidden p-2 text-muted-fg hover:text-foreground transition" onClick={() => router.push('/search')}>
+            <button
+              className="md:hidden p-2 text-muted-fg hover:text-foreground transition min-w-11 min-h-11 flex items-center justify-center rounded-xl"
+              aria-label="Search"
+              onClick={() => router.push('/search')}
+            >
               <Search size={20} />
             </button>
 
             {/* Wishlist */}
-            <Link href="/wishlist"
-              className="hidden sm:flex p-2 text-muted-fg hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all duration-200">
+            <Link href="/wishlist" aria-label="Wishlist"
+              className="hidden sm:flex p-2 min-w-11 min-h-11 items-center justify-center text-muted-fg hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all duration-200">
               <Heart size={20} />
             </Link>
 
             {/* Cart */}
-            <Link href="/cart"
-              className="relative p-2 text-muted-fg hover:text-primary hover:bg-secondary rounded-xl transition-all duration-200">
+            <Link href="/cart" aria-label={`Shopping cart${mounted && itemCount > 0 ? `, ${itemCount} item${itemCount > 1 ? 's' : ''}` : ''}`}
+              className="relative p-2 min-w-11 min-h-11 flex items-center justify-center text-muted-fg hover:text-primary hover:bg-secondary rounded-xl transition-all duration-200">
               <ShoppingCart size={20} />
               <AnimatePresence>
                 {mounted && itemCount > 0 && (
@@ -213,7 +222,8 @@ export default function Header({ categories }: { categories: any[] }) {
             {/* Profile */}
             <button
               onClick={() => user ? setProfileOpen(true) : router.push('/login')}
-              className="flex items-center gap-2 ml-1 transition-all duration-200"
+              aria-label={user ? 'My account' : 'Sign in'}
+              className="flex items-center gap-2 ml-1 min-h-11 transition-all duration-200"
             >
               {user
                 ? <div className="w-8 h-8 rounded-full bg-foreground hover:bg-primary text-background flex items-center justify-center text-xs font-bold transition-colors duration-200">
