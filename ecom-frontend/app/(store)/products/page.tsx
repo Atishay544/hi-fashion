@@ -12,7 +12,7 @@ import WishlistButton from '@/components/storefront/WishlistButton'
 export const revalidate = 30
 
 export async function generateMetadata() {
-  const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.hifashions.shop'
   return {
     title: 'All Products | Hi Fashion',
     description: 'Browse our full collection of trendy clothing and fashion. Free shipping above ₹499.',
@@ -82,7 +82,7 @@ export default async function ProductsPage({ searchParams }: Props) {
   const totalPages = Math.ceil(count / PAGE_SIZE)
   const sort = params.sort ?? 'newest'
 
-  const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.hifashions.shop'
   const itemListJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',

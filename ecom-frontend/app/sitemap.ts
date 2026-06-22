@@ -4,7 +4,7 @@ import type { MetadataRoute } from 'next'
 export const revalidate = 3600
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://hifashions.shop'
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.hifashions.shop'
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return []
 

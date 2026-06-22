@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
   display: "swap",
 });
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://hifashions.shop'
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.hifashions.shop'
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
@@ -137,7 +137,7 @@ const orgJsonLd = {
         ],
       },
       sameAs: [
-        "https://hifashions.shop",
+        "https://www.hifashions.shop",
       ],
     },
     {

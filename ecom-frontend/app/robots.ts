@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next'
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://hifashions.shop'
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.hifashions.shop'
   const disallow = ['/account', '/account/', '/admin', '/admin/', '/checkout', '/api/', '/auth/']
   return {
     rules: [

@@ -243,7 +243,7 @@ export async function generateMetadata({ params }: Props) {
   const product = await getProduct(slug)
   if (!product) return { title: 'Product Not Found' }
 
-  const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.hifashions.shop'
   const title = product.name
   const description = product.description?.slice(0, 160)
     ?? `Buy ${product.name} online at Hi Fashion. Best price ₹${product.price}. Free shipping above ₹499.`
@@ -335,7 +335,7 @@ export default async function ProductDetailPage({ params }: Props) {
     <div className="max-w-350 mx-auto px-4 sm:px-6 lg:px-10 py-6 md:py-10">
       {/* Structured data — Product + BreadcrumbList */}
       {(() => {
-        const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+        const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.hifashions.shop'
         const jsonLd = {
           '@context': 'https://schema.org',
           '@graph': [

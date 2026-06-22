@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: Props) {
   const { slug } = await params
   const category = await getCategoryBySlug(slug)
   if (!category) return { title: 'Category Not Found' }
-  const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.hifashions.shop'
   const title = `${category.name} — Buy Online | Hi Fashion`
   const description = `Shop ${category.name} online at Hi Fashion. Free shipping above ₹499. Browse our full ${category.name} collection.`
   const canonical = `${BASE_URL}/category/${slug}`
@@ -104,7 +104,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const { products, count } = await getCategoryProducts(category.id, sort, page)
   const totalPages = Math.ceil(count / PAGE_SIZE)
 
-  const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.hifashions.shop'
   const categoryUrl = `${BASE_URL}/category/${slug}`
   const combinedJsonLd = {
     '@context': 'https://schema.org',

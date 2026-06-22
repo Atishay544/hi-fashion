@@ -108,7 +108,7 @@ export default async function HomePage() {
   const dealBanner    = banners.find(b => b.sort_order === 1) ?? null
   const featuredCards = banners.filter(b => b.display_style === 'featured_card')
 
-  const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.hifashions.shop'
   const homeJsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
