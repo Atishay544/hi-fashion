@@ -21,9 +21,7 @@ const staticLinks = {
 }
 
 const socials = [
-  { label: 'Instagram', href: '#', icon: 'IG' },
-  { label: 'Twitter',   href: '#', icon: 'TW' },
-  { label: 'Facebook',  href: '#', icon: 'FB' },
+  { label: 'Instagram', href: 'https://www.instagram.com/hi_fashions1985/', icon: 'IG' },
 ]
 
 export default function Footer({ categories = [] }: { categories?: Category[] }) {
@@ -38,7 +36,7 @@ export default function Footer({ categories = [] }: { categories?: Category[] })
           <p className="text-sm leading-relaxed">India's trusted fashion store. Free shipping above ₹499.</p>
           <div className="flex gap-3 mt-4">
             {socials.map(s => (
-              <a key={s.label} href={s.href}
+              <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
                 className="w-8 h-8 rounded-full bg-gray-700 hover:bg-white hover:text-black transition flex items-center justify-center text-xs font-bold">
                 {s.icon}
               </a>
