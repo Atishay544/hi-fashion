@@ -1,5 +1,6 @@
 import { unstable_cache } from 'next/cache'
 import { createAdminClient } from './supabase/admin'
+import { getGA4VisitorStats } from './analytics-ga4'
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
@@ -20,7 +21,7 @@ export const getAdminDashboard = unstable_cache(
     const d14   = daysAgo(14); const d30 = daysAgo(30); const d60 = daysAgo(60)
 
     const [ordersRes, recentRes, allStatusRes, profilesTotalRes, profilesNewRes,
-           partnersRes, visitorsRes, visitorsTodayRes, lowStockRes] = await Promise.all([
+           partnersRes, ga4Stats, lowStockRes] = await Promise.all([
       db.from('orders').select('id, total, status, created_at, shipping_address')
         .gte('created_at', d60.toISOString()).order('created_at', { ascending: true }),
       db.from('orders').select('id, total, status, created_at, shipping_address')
@@ -31,8 +32,7 @@ export const getAdminDashboard = unstable_cache(
       db.from('profiles').select('id', { count: 'exact', head: true })
         .eq('role', 'customer').gte('created_at', d30.toISOString()),
       (db as any).from('delivery_partners').select('id', { count: 'exact', head: true }).eq('is_active', true),
-      (db as any).rpc('count_unique_visitors', { since_ts: d30.toISOString() }),
-      (db as any).rpc('count_unique_visitors', { since_ts: today.toISOString() }),
+      getGA4VisitorStats(),
       db.from('products').select('id, name, stock, product_skus(stock)')
         .eq('is_active', true).order('stock', { ascending: true }).limit(50),
     ])
@@ -82,8 +82,8 @@ export const getAdminDashboard = unstable_cache(
       aov30d, aovPrev30d,
       newCustomers30d: profilesNewRes.count   ?? 0,
       totalCustomers:  profilesTotalRes.count ?? 0,
-      visitorsToday:   (visitorsTodayRes as any).data ?? 0,
-      visitors30d:     (visitorsRes as any).data      ?? 0,
+      visitorsToday:   ga4Stats.visitorsToday,
+      visitors30d:     ga4Stats.visitors30d,
       ordersByStatus,
       dailySeries:     Array.from(seriesMap.values()),
       recentOrders: ((recentRes.data ?? []) as OrderRow[]).map(o => ({

@@ -14,6 +14,7 @@
     "bench": "npx tsx scripts/bench-apis.ts"
   },
   "dependencies": {
+    "@google-analytics/data": "^6.1.0",
     "@hookform/resolvers": "^5.2.2",
     "@stripe/stripe-js": "^9.0.1",
     "@supabase/ssr": "^0.10.0",
