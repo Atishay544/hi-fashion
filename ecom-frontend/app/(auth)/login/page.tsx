@@ -52,19 +52,28 @@ export default function LoginPage() {
     setOtpDigits(['', '', '', '', '', ''])
   }
 
+  async function apiFetch(url: string, body: object): Promise<{ ok: boolean; data: any }> {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      let data: any = {}
+      try { data = await res.json() } catch { data = {} }
+      return { ok: res.ok, data }
+    } catch {
+      return { ok: false, data: { error: 'Network error. Please check your connection.' } }
+    }
+  }
+
   // ── Password ──────────────────────────────────────────────────────────────
   async function handlePasswordAuth() {
     setLoading(true); setError('')
     if (isSignUp) {
-      const res = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, fullName: name.trim() }),
-      })
-      const data = await res.json()
+      const { ok, data } = await apiFetch('/api/auth/signup', { email, password, fullName: name.trim() })
       setLoading(false)
-      if (!res.ok) return setError(data.error ?? 'Sign-up failed. Please try again.')
-      // Show OTP input — user must enter the code sent to their email
+      if (!ok) return setError(data.error ?? 'Sign-up failed. Please try again.')
       setOtpType('signup')
       setOtpDigits(['', '', '', '', '', ''])
       setStep('otp')
@@ -82,14 +91,9 @@ export default function LoginPage() {
   async function handleSendEmailOtp() {
     if (!email.trim()) { setError('Enter your email address'); return }
     setLoading(true); setError('')
-    const res = await fetch('/api/auth/send-otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    })
-    const data = await res.json()
+    const { ok, data } = await apiFetch('/api/auth/send-otp', { email })
     setLoading(false)
-    if (!res.ok) return setError(data.error ?? 'Failed to send code. Please try again.')
+    if (!ok) return setError(data.error ?? 'Failed to send code. Please try again.')
     setOtpType('email')
     setStep('otp')
     setResendCountdown(60)
@@ -101,34 +105,16 @@ export default function LoginPage() {
     setLoading(true); setError('')
 
     if (otpType === 'signup') {
-      // Signup: validate OTP server-side → create Supabase user → sign in with password
-      const verifyRes = await fetch('/api/auth/verify-signup-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp, password }),
-      })
-      const verifyData = await verifyRes.json()
-      if (!verifyRes.ok) {
-        setLoading(false)
-        return setError(verifyData.error ?? 'Verification failed. Please try again.')
-      }
-      // Account created — sign in now
+      const { ok, data } = await apiFetch('/api/auth/verify-signup-otp', { email, otp, password })
+      if (!ok) { setLoading(false); return setError(data.error ?? 'Verification failed. Please try again.') }
       const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
       setLoading(false)
       if (signInErr) return setError(signInErr.message)
     } else {
-      // Passwordless email OTP — validate against our pending_login_otps table,
-      // get back a Supabase magic link, redirect to create the session
-      const verifyRes = await fetch('/api/auth/verify-email-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp }),
-      })
-      const verifyData = await verifyRes.json()
+      const { ok, data } = await apiFetch('/api/auth/verify-email-otp', { email, otp })
       setLoading(false)
-      if (!verifyRes.ok) return setError(verifyData.error ?? 'Verification failed. Please try again.')
-      // Redirect to Supabase magic link → /auth/callback → session created
-      window.location.href = verifyData.redirectTo
+      if (!ok) return setError(data.error ?? 'Verification failed. Please try again.')
+      window.location.href = data.redirectTo
       return
     }
 

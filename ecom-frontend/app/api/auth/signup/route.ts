@@ -35,15 +35,6 @@ export async function POST(req: NextRequest) {
   const normalEmail = email.trim().toLowerCase()
   const db = serviceClient()
 
-  // Reject if this email already has a confirmed Supabase account
-  const { data: existing } = await db.auth.admin.getUserByEmail(normalEmail)
-  if (existing?.user?.email_confirmed_at) {
-    return NextResponse.json(
-      { error: 'An account with this email already exists. Please sign in.' },
-      { status: 409 },
-    )
-  }
-
   // Generate 6-digit OTP — do NOT create a Supabase user yet
   const otp = String(randomInt(100000, 1000000)).padStart(6, '0')
   const otpHash = hashOtp(otp)
