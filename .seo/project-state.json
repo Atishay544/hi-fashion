@@ -1,0 +1,27 @@
+{
+  "project": "hifashions.shop",
+  "initialized_at": "2026-06-19T00:00:00Z",
+  "current_phase": "phase-1-technical",
+  "phases": {
+    "phase-0-audit":          { "status": "completed",   "owner": "strategist+intel+technical", "started_at": "2026-06-19T00:00:00Z", "completed_at": "2026-06-19T00:00:00Z", "deliverables": [".seo/deliverables/audit.md", ".seo/deliverables/strategy.md"] },
+    "phase-1-technical":      { "status": "completed",   "owner": "technical",                  "started_at": "2026-06-19T00:00:00Z", "completed_at": "2026-06-19T00:00:00Z", "deliverables": [] },
+    "phase-2-keywords":       { "status": "pending",     "owner": "keyword-researcher",          "started_at": null, "completed_at": null, "deliverables": [] },
+    "phase-3-on-page":        { "status": "blocked",     "owner": "content-optimizer",           "started_at": null, "completed_at": null, "deliverables": [], "blocked_by": "phase-2-keywords" },
+    "phase-4-schema-aeo":     { "status": "blocked",     "owner": "aeo-specialist+technical",    "started_at": null, "completed_at": null, "deliverables": [], "blocked_by": "phase-3-on-page" },
+    "phase-5-performance":    { "status": "pending",     "owner": "technical",                   "started_at": null, "completed_at": null, "deliverables": [] },
+    "phase-6-analytics":      { "status": "in_progress", "owner": "analytics",                   "started_at": "2026-06-19T00:00:00Z", "completed_at": null, "deliverables": [], "notes": "purchase event already live via GAPurchaseEvent.tsx. Missing: GSC, Merchant Center, view_item/add_to_cart/begin_checkout events, Bing WMT" },
+    "phase-7-content":        { "status": "blocked",     "owner": "content-optimizer+keyword",   "started_at": null, "completed_at": null, "deliverables": [], "blocked_by": "phase-2-keywords,phase-3-on-page" },
+    "phase-8-links":          { "status": "blocked",     "owner": "link-builder",                "started_at": null, "completed_at": null, "deliverables": [], "blocked_by": "phase-0-audit,phase-3-on-page" },
+    "phase-9-monitor":        { "status": "blocked",     "owner": "analytics+strategist",        "started_at": null, "completed_at": null, "deliverables": [], "blocked_by": "phase-6-analytics" }
+  },
+  "kpis": {
+    "organic_clicks_baseline": null,
+    "indexed_pages": null,
+    "primary_keywords_top_10": 0,
+    "core_web_vitals_pass": null,
+    "merchant_center_active_products": null,
+    "backlinks_count": 0,
+    "domain_rating": null
+  },
+  "next_action": "Phase 6: Verify NEXT_PUBLIC_APP_URL in Vercel → set up GSC → set up Merchant Center → wire remaining GA4 e-commerce events (view_item, add_to_cart, begin_checkout)"
+}

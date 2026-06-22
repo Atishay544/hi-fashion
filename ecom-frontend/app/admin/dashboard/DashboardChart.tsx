@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -41,6 +42,7 @@ export interface DashboardProps {
   lowStock: LowStockProduct[]
   activePartners: number
   pendingAction: number
+  liveVisitorSlot?: React.ReactNode
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -259,7 +261,7 @@ function RevenueChart({ data }: { data: DayPoint[] }) {
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 
-export default function DashboardChart(props: DashboardProps) {
+export default function DashboardChart(props: DashboardProps & { liveVisitorSlot?: ReactNode }) {
   const {
     revenueToday, revenueYesterday,
     revenue7d, revenuePrev7d,
@@ -276,6 +278,7 @@ export default function DashboardChart(props: DashboardProps) {
     lowStock,
     activePartners,
     pendingAction,
+    liveVisitorSlot,
   } = props
 
   const [period, setPeriod] = useState<'today' | '7d' | '30d'>('30d')
@@ -379,17 +382,25 @@ export default function DashboardChart(props: DashboardProps) {
               </div>
             ))}
           </div>
-          {/* Mini visitor stat */}
-          <div className="mt-4 pt-4 border-t border-gray-50 grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">Today</p>
-              <p className="text-lg font-bold text-gray-800">{visitorsToday.toLocaleString('en-IN')}</p>
-              <p className="text-[10px] text-gray-400">visitors</p>
+          {/* Visitor stats */}
+          <div className="mt-4 pt-4 border-t border-gray-50 space-y-3">
+            {/* Live now */}
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">Live now</p>
+              {liveVisitorSlot ?? <span className="text-sm font-bold text-gray-800">—</span>}
             </div>
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">30 days</p>
-              <p className="text-lg font-bold text-gray-800">{visitors30d.toLocaleString('en-IN')}</p>
-              <p className="text-[10px] text-gray-400">visitors</p>
+            {/* Historical */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">Today</p>
+                <p className="text-lg font-bold text-gray-800">{visitorsToday.toLocaleString('en-IN')}</p>
+                <p className="text-[10px] text-gray-400">unique visitors</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">30 days</p>
+                <p className="text-lg font-bold text-gray-800">{visitors30d.toLocaleString('en-IN')}</p>
+                <p className="text-[10px] text-gray-400">unique visitors</p>
+              </div>
             </div>
           </div>
         </div>

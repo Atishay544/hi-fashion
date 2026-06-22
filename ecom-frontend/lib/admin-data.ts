@@ -31,10 +31,8 @@ export const getAdminDashboard = unstable_cache(
       db.from('profiles').select('id', { count: 'exact', head: true })
         .eq('role', 'customer').gte('created_at', d30.toISOString()),
       (db as any).from('delivery_partners').select('id', { count: 'exact', head: true }).eq('is_active', true),
-      (db as any).from('page_views').select('id', { count: 'exact', head: true })
-        .gte('created_at', d30.toISOString()),
-      (db as any).from('page_views').select('id', { count: 'exact', head: true })
-        .gte('created_at', today.toISOString()),
+      (db as any).rpc('count_unique_visitors', { since_ts: d30.toISOString() }),
+      (db as any).rpc('count_unique_visitors', { since_ts: today.toISOString() }),
       db.from('products').select('id, name, stock, product_skus(stock)')
         .eq('is_active', true).order('stock', { ascending: true }).limit(50),
     ])
@@ -84,8 +82,8 @@ export const getAdminDashboard = unstable_cache(
       aov30d, aovPrev30d,
       newCustomers30d: profilesNewRes.count   ?? 0,
       totalCustomers:  profilesTotalRes.count ?? 0,
-      visitorsToday:   visitorsTodayRes.count ?? 0,
-      visitors30d:     visitorsRes.count      ?? 0,
+      visitorsToday:   (visitorsTodayRes as any).data ?? 0,
+      visitors30d:     (visitorsRes as any).data      ?? 0,
       ordersByStatus,
       dailySeries:     Array.from(seriesMap.values()),
       recentOrders: ((recentRes.data ?? []) as OrderRow[]).map(o => ({
