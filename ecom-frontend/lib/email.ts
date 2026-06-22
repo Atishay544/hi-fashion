@@ -67,7 +67,30 @@ export async function sendOtpEmail({ to, otp }: { to: string; otp: string }) {
   if (error) throw new Error(error.message)
 }
 
-// ─── Auth: Sign-up Confirmation ──────────────────────────────────────────────
+// ─── Auth: Sign-up OTP ───────────────────────────────────────────────────────
+
+export async function sendSignupOtpEmail({ to, name, otp }: { to: string; name?: string; otp: string }) {
+  const greeting = name ? `Hi ${name},` : 'Hi there,'
+  const html = baseLayout(`
+    <h2 style="margin:0 0 4px;font-size:22px;color:#111">Verify your account</h2>
+    <p style="margin:0 0 28px;color:#666;font-size:14px">${greeting} use this 6-digit code to verify your Hi Fashion account. It expires in <strong>10 minutes</strong>.</p>
+    <div style="text-align:center;margin:8px 0 32px">
+      <div style="display:inline-block;background:#f0fdf4;border:2px solid #bbf7d0;border-radius:16px;padding:20px 48px">
+        <span style="font-size:42px;font-weight:800;letter-spacing:14px;color:#166534;font-family:monospace">${otp}</span>
+      </div>
+    </div>
+    <p style="text-align:center;color:#9ca3af;font-size:12px;margin:0">If you didn't create a Hi Fashion account, you can safely ignore this email.</p>
+  `)
+  const { error } = await getResend().emails.send({
+    from:    FROM,
+    to,
+    subject: `${otp} — verify your Hi Fashion account`,
+    html,
+  })
+  if (error) throw new Error(error.message)
+}
+
+// ─── Auth: Sign-up Confirmation (link-based — kept for reference) ─────────────
 
 export async function sendSignupConfirmation({ to, name, confirmLink }: { to: string; name?: string; confirmLink: string }) {
   const greeting = name ? `Hi ${name},` : 'Hi there,'

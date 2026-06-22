@@ -25,7 +25,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', ''])
   const [isSignUp, setIsSignUp] = useState(false)
-  const [step, setStep] = useState<'input' | 'otp' | 'check-email'>('input')
+  const [step, setStep] = useState<'input' | 'otp'>('input')
+  // 'signup' = verifying new account, 'email' = passwordless login
+  const [otpType, setOtpType] = useState<'signup' | 'email'>('email')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -42,6 +44,7 @@ export default function LoginPage() {
   function switchTab(t: Tab) {
     setTab(t)
     setStep('input')
+    setOtpType('email')
     setError('')
     setSuccess('')
     setIsSignUp(false)
@@ -53,7 +56,6 @@ export default function LoginPage() {
   async function handlePasswordAuth() {
     setLoading(true); setError('')
     if (isSignUp) {
-      // Server-side signup → confirmation email sent via Resend (not Supabase)
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -62,7 +64,12 @@ export default function LoginPage() {
       const data = await res.json()
       setLoading(false)
       if (!res.ok) return setError(data.error ?? 'Sign-up failed. Please try again.')
-      setStep('check-email')
+      // Show OTP input — user must enter the code sent to their email
+      setOtpType('signup')
+      setOtpDigits(['', '', '', '', '', ''])
+      setStep('otp')
+      setResendCountdown(60)
+      setSuccess(`Verification code sent to ${email}`)
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       setLoading(false)
@@ -71,7 +78,7 @@ export default function LoginPage() {
     }
   }
 
-  // ── Email OTP — send (via Resend, not Supabase email) ─────────────────────
+  // ── Email OTP — send (passwordless login, via Resend) ────────────────────
   async function handleSendEmailOtp() {
     if (!email.trim()) { setError('Enter your email address'); return }
     setLoading(true); setError('')
@@ -83,15 +90,16 @@ export default function LoginPage() {
     const data = await res.json()
     setLoading(false)
     if (!res.ok) return setError(data.error ?? 'Failed to send code. Please try again.')
+    setOtpType('email')
     setStep('otp')
     setResendCountdown(60)
     setSuccess(`Code sent to ${email}`)
   }
 
-  // ── Email OTP — verify ────────────────────────────────────────────────────
-  async function handleVerifyEmailOtp() {
+  // ── OTP — verify (signup or passwordless login) ───────────────────────────
+  async function handleVerifyOtp() {
     setLoading(true); setError('')
-    const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: 'email' })
+    const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: otpType })
     setLoading(false)
     if (error) return setError(error.message)
     router.push('/account')
@@ -229,20 +237,16 @@ export default function LoginPage() {
                 {/* Heading */}
                 <div className="text-center">
                   <h2 className="text-xl font-bold text-gray-900">
-                    {tab === 'password' && step === 'check-email' && 'Check your inbox'}
                     {tab === 'password' && step === 'input' && (isSignUp ? 'Create account' : 'Welcome back')}
+                    {tab === 'password' && step === 'otp' && 'Verify your email'}
                     {tab === 'otp' && step === 'input' && 'Sign in without password'}
                     {tab === 'otp' && step === 'otp' && 'Enter your code'}
-                    {/* {tab === 'phone' && step === 'input' && 'Sign in with mobile'} */}
-                    {/* {tab === 'phone' && step === 'otp' && 'Enter OTP'} */}
                   </h2>
                   <p className="text-sm text-gray-400 mt-1">
-                    {tab === 'password' && step === 'check-email' && `Verification link sent to ${email}`}
                     {tab === 'password' && step === 'input' && (isSignUp ? 'Fill in your details below' : 'Sign in to your account')}
+                    {tab === 'password' && step === 'otp' && `Enter the 6-digit code sent to ${email}`}
                     {tab === 'otp' && step === 'input' && "We'll email you a 6-digit code — no password needed"}
                     {tab === 'otp' && step === 'otp' && `6-digit code sent to ${email}`}
-                    {/* {tab === 'phone' && step === 'input' && 'Get an OTP on your mobile number'} */}
-                    {/* {tab === 'phone' && step === 'otp' && `OTP sent to +91 ${phone}`} */}
                   </p>
                 </div>
 
@@ -293,25 +297,28 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                {/* ── Password: check-email ── */}
-                {tab === 'password' && step === 'check-email' && (
-                  <div className="space-y-5 text-center">
-                    <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300 }}
-                      className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto text-3xl">
-                      ✉️
-                    </motion.div>
-                    <div>
-                      <p className="text-sm text-gray-600">Click the verification link sent to</p>
-                      <p className="font-semibold text-gray-900 mt-0.5">{email}</p>
-                    </div>
-                    <p className="text-xs text-gray-400">You'll be signed in automatically after clicking the link.</p>
-                    <p className="text-xs text-red-500 font-medium">
+                {/* ── Password: OTP verify after signup ── */}
+                {tab === 'password' && step === 'otp' && (
+                  <div className="space-y-5">
+                    <OtpBoxes digits={otpDigits} onChange={setOtpDigits} />
+                    <PrimaryButton onClick={handleVerifyOtp} loading={loading} disabled={otp.length < 6}>
+                      Verify &amp; Activate Account
+                    </PrimaryButton>
+                    <p className="text-xs text-red-500 font-medium text-center">
                       Can't find it? Check your <strong>spam / junk folder</strong>.
                     </p>
-                    <button onClick={() => { setStep('input'); setError(''); setPassword('') }}
-                      className="text-xs text-indigo-500 hover:text-indigo-700 transition font-medium">
-                      ← Use a different email
-                    </button>
+                    <div className="flex items-center justify-between">
+                      <button onClick={() => { setStep('input'); setOtpDigits(['', '', '', '', '', '']); setError(''); setPassword('') }}
+                        className="text-xs text-gray-400 hover:text-gray-600 transition">← Change email</button>
+                      {resendCountdown > 0 ? (
+                        <span className="text-xs text-gray-400">Resend in {resendCountdown}s</span>
+                      ) : (
+                        <button onClick={handlePasswordAuth} disabled={loading}
+                          className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold transition disabled:opacity-40">
+                          Resend code
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -332,7 +339,7 @@ export default function LoginPage() {
                 {tab === 'otp' && step === 'otp' && (
                   <div className="space-y-5">
                     <OtpBoxes digits={otpDigits} onChange={setOtpDigits} />
-                    <PrimaryButton onClick={handleVerifyEmailOtp} loading={loading} disabled={otp.length < 6}>
+                    <PrimaryButton onClick={handleVerifyOtp} loading={loading} disabled={otp.length < 6}>
                       Verify &amp; Sign in
                     </PrimaryButton>
                     <p className="text-xs text-red-500 font-medium text-center">

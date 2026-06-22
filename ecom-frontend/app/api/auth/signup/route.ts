@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendSignupConfirmation } from '@/lib/email'
+import { sendSignupOtpEmail } from '@/lib/email'
 import { rateLimit } from '@/lib/security/rate-limit'
 
 export async function POST(req: NextRequest) {
@@ -21,16 +21,14 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient()
 
-  // Create user without sending Supabase's confirmation email (email_confirm: false)
-  const { data: newUser, error: createErr } = await admin.auth.admin.createUser({
+  // Create user without auto-confirming — user must verify via OTP
+  const { error: createErr } = await admin.auth.admin.createUser({
     email: email.trim().toLowerCase(),
     password,
     email_confirm: false,
     user_metadata: { full_name: fullName?.trim() ?? '' },
   })
 
-  // If user already exists, generate a fresh confirmation link instead
-  let actionLink: string | undefined
   if (createErr?.message?.toLowerCase().includes('already registered') ||
       createErr?.message?.toLowerCase().includes('already been registered')) {
     return NextResponse.json({ error: 'An account with this email already exists. Please sign in.' }, { status: 409 })
@@ -38,25 +36,21 @@ export async function POST(req: NextRequest) {
   if (createErr)
     return NextResponse.json({ error: createErr.message }, { status: 400 })
 
-  // Generate the confirmation link without Supabase sending an email
-  const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+  // Generate signup OTP (does NOT send an email — we send via Resend below)
+  const { data, error: linkErr } = await admin.auth.admin.generateLink({
     type: 'signup',
     email: email.trim().toLowerCase(),
-    options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.hifashions.shop'}/auth/callback?next=/account`,
-    },
   })
 
-  if (linkErr || !linkData?.properties?.action_link)
-    return NextResponse.json({ error: 'Failed to generate confirmation link. Please try again.' }, { status: 500 })
-
-  actionLink = linkData.properties.action_link
+  const otp = data?.properties?.email_otp
+  if (linkErr || !otp)
+    return NextResponse.json({ error: 'Failed to generate verification code. Please try again.' }, { status: 500 })
 
   try {
-    await sendSignupConfirmation({ to: email.trim(), name: fullName?.trim(), confirmLink: actionLink })
+    await sendSignupOtpEmail({ to: email.trim(), name: fullName?.trim(), otp })
   } catch (e: any) {
-    console.error('[email] signup confirmation send failed:', e?.message)
-    return NextResponse.json({ error: 'Failed to send confirmation email. Please try again.' }, { status: 500 })
+    console.error('[email] signup OTP send failed:', e?.message)
+    return NextResponse.json({ error: 'Failed to send verification email. Please try again.' }, { status: 500 })
   }
 
   return NextResponse.json({ success: true })
