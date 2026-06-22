@@ -99,9 +99,30 @@ export default function LoginPage() {
   // ── OTP — verify (signup or passwordless login) ───────────────────────────
   async function handleVerifyOtp() {
     setLoading(true); setError('')
-    const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: otpType })
-    setLoading(false)
-    if (error) return setError(error.message)
+
+    if (otpType === 'signup') {
+      // Signup: validate OTP server-side → create Supabase user → sign in with password
+      const verifyRes = await fetch('/api/auth/verify-signup-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp, password }),
+      })
+      const verifyData = await verifyRes.json()
+      if (!verifyRes.ok) {
+        setLoading(false)
+        return setError(verifyData.error ?? 'Verification failed. Please try again.')
+      }
+      // Account created — sign in now
+      const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
+      setLoading(false)
+      if (signInErr) return setError(signInErr.message)
+    } else {
+      // Passwordless email OTP — Supabase validates the token it generated earlier
+      const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: 'email' })
+      setLoading(false)
+      if (error) return setError(error.message)
+    }
+
     router.push('/account')
   }
 
