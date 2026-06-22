@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@supabase/supabase-js'
 import { sendOtpEmail } from '@/lib/email'
 import { rateLimit } from '@/lib/security/rate-limit'
+import { createHash, randomInt } from 'crypto'
+
+function serviceClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  )
+}
+
+function hashOtp(otp: string) {
+  return createHash('sha256').update(otp).digest('hex')
+}
 
 export async function POST(req: NextRequest) {
   const limited = await rateLimit(req, 'otp')
@@ -17,27 +30,29 @@ export async function POST(req: NextRequest) {
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
     return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
 
-  const admin = createAdminClient()
+  const normalEmail = email.trim().toLowerCase()
 
-  // generateLink with type 'email' creates the OTP in Supabase WITHOUT sending an email.
-  // properties.email_otp contains the 6-digit code for verifyOtp() on the client.
-  const { data, error } = await admin.auth.admin.generateLink({
-    type: 'email',
-    email: email.trim().toLowerCase(),
-    options: { shouldCreateUser: true },
-  })
+  // Generate our own 6-digit OTP (always exactly 6 digits)
+  const otp = String(randomInt(100000, 1000000))
+  const otpHash = hashOtp(otp)
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
 
-  if (error)
-    return NextResponse.json({ error: error.message }, { status: 400 })
+  const db = serviceClient()
 
-  const otp = data?.properties?.email_otp
-  if (!otp)
-    return NextResponse.json({ error: 'Could not generate OTP. Please try again.' }, { status: 500 })
+  const { error: upsertErr } = await db
+    .from('pending_login_otps')
+    .upsert({ email: normalEmail, otp_hash: otpHash, expires_at: expiresAt })
+
+  if (upsertErr) {
+    console.error('[send-otp] upsert failed:', upsertErr.message)
+    return NextResponse.json({ error: 'Could not generate code. Please try again.' }, { status: 500 })
+  }
 
   try {
     await sendOtpEmail({ to: email.trim(), otp })
   } catch (e: any) {
     console.error('[email] OTP send failed:', e?.message)
+    await db.from('pending_login_otps').delete().eq('email', normalEmail)
     return NextResponse.json({ error: 'Failed to send email. Please try again.' }, { status: 500 })
   }
 

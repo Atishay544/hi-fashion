@@ -117,10 +117,19 @@ export default function LoginPage() {
       setLoading(false)
       if (signInErr) return setError(signInErr.message)
     } else {
-      // Passwordless email OTP — Supabase validates the token it generated earlier
-      const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: 'email' })
+      // Passwordless email OTP — validate against our pending_login_otps table,
+      // get back a Supabase magic link, redirect to create the session
+      const verifyRes = await fetch('/api/auth/verify-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp }),
+      })
+      const verifyData = await verifyRes.json()
       setLoading(false)
-      if (error) return setError(error.message)
+      if (!verifyRes.ok) return setError(verifyData.error ?? 'Verification failed. Please try again.')
+      // Redirect to Supabase magic link → /auth/callback → session created
+      window.location.href = verifyData.redirectTo
+      return
     }
 
     router.push('/account')
