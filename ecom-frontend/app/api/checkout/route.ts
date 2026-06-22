@@ -460,7 +460,7 @@ export async function POST(req: NextRequest) {
       items:          emailItems,
       total,
       paymentMethod:  'Cash on Delivery',
-      shippingAddress: shipping_address,
+      shippingAddress: safeAddress,
     }).catch((e) => console.error('[email] new order alert failed:', e?.message ?? e))
 
     return NextResponse.json({ order_id: order.id, payment_method: 'cod' })
@@ -486,6 +486,7 @@ export async function POST(req: NextRequest) {
         items:           emailItems,
         subtotal, discount, total,
         paymentMethod:   'upi',
+        utrNumber:       utr_number.trim().toUpperCase(),
         shippingAddress: safeAddress,
       }).catch((e) => console.error('[email] upi order confirmation failed:', e?.message ?? e))
     }
@@ -495,7 +496,7 @@ export async function POST(req: NextRequest) {
       items:          emailItems,
       total,
       paymentMethod:  `UPI Transfer — UTR: ${utr_number.trim().toUpperCase()}`,
-      shippingAddress: shipping_address,
+      shippingAddress: safeAddress,
     }).catch((e) => console.error('[email] upi new order alert failed:', e?.message ?? e))
 
     return NextResponse.json({ order_id: order.id, payment_method: 'upi' })
@@ -516,12 +517,15 @@ export async function POST(req: NextRequest) {
     const customerEmail = user?.email ?? guest_email ?? null
     if (customerEmail) {
       sendOrderConfirmation({
-        to:              customerEmail,
-        orderId:         order.id,
-        items:           emailItems,
+        to:               customerEmail,
+        orderId:          order.id,
+        items:            emailItems,
         subtotal, discount, total,
-        paymentMethod:   'partial_cod',
-        shippingAddress: safeAddress,
+        paymentMethod:    'partial_cod',
+        amountCharged:    amountToCharge,
+        amountOnDelivery: total - amountToCharge,
+        utrNumber:        utr_number?.trim().toUpperCase(),
+        shippingAddress:  safeAddress,
       }).catch((e) => console.error('[email] partial_cod confirmation failed:', e?.message ?? e))
     }
     sendNewOrderAlert({
@@ -529,8 +533,8 @@ export async function POST(req: NextRequest) {
       customerEmail:  customerEmail ?? 'Guest',
       items:          emailItems,
       total,
-      paymentMethod:  `Partial COD — ₹${amountToCharge} advance via UPI (UTR: ${utr_number?.trim().toUpperCase()}) + ₹${total - amountToCharge} on delivery`,
-      shippingAddress: shipping_address,
+      paymentMethod:  `Partial COD — ₹${amountToCharge.toFixed(2)} advance via UPI (UTR: ${utr_number?.trim().toUpperCase()}) + ₹${(total - amountToCharge).toFixed(2)} on delivery`,
+      shippingAddress: safeAddress,
     }).catch((e) => console.error('[email] partial_cod alert failed:', e?.message ?? e))
 
     return NextResponse.json({ order_id: order.id, payment_method: 'partial_cod' })

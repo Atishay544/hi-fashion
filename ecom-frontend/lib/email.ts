@@ -4,7 +4,7 @@ function getResend() {
   return new Resend(process.env.RESEND_API_KEY)
 }
 
-const FROM = 'Hi Fashion <parvjain012@gmail.com>'
+const FROM = 'Hi Fashion <orders@hifashions.shop>'
 
 // ─── Shared helpers ─────────────────────────────────────────────────────────
 
@@ -46,37 +46,62 @@ function baseLayout(body: string) {
 
 // ─── Customer: Order Confirmation ────────────────────────────────────────────
 
+type PaymentMethod = 'online' | 'cod' | 'cod_upfront' | 'upi' | 'partial_cod'
+
 interface OrderConfirmParams {
-  to:             string
-  orderId:        string
-  items:          { name: string; quantity: number; unit_price: number }[]
-  subtotal:       number
-  discount:       number
-  total:          number
-  paymentMethod:  'online' | 'cod' | 'cod_upfront'
-  amountCharged?: number
+  to:              string
+  orderId:         string
+  items:           { name: string; quantity: number; unit_price: number }[]
+  subtotal:        number
+  discount:        number
+  total:           number
+  paymentMethod:   PaymentMethod
+  amountCharged?:  number
   amountOnDelivery?: number
+  utrNumber?:      string
   shippingAddress: Record<string, string>
 }
 
 export async function sendOrderConfirmation(p: OrderConfirmParams) {
   const pmLabel =
     p.paymentMethod === 'cod'         ? 'Cash on Delivery' :
-    p.paymentMethod === 'cod_upfront' ? 'COD Upfront Offer' : 'Paid Online'
+    p.paymentMethod === 'cod_upfront' ? 'COD Upfront Offer' :
+    p.paymentMethod === 'upi'         ? 'UPI Transfer' :
+    p.paymentMethod === 'partial_cod' ? 'Partial Payment (UPI + COD)' :
+                                        'Paid Online'
 
-  const paymentDetail =
-    p.paymentMethod === 'cod'
-      ? `<p style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 16px;color:#9a3412;margin:16px 0">
-           <strong>Cash on Delivery</strong> — please keep <strong>${formatINR(p.total)}</strong> ready at the time of delivery.
-         </p>`
-      : p.paymentMethod === 'cod_upfront' && p.amountCharged !== undefined
-        ? `<p style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 16px;color:#166534;margin:16px 0">
-             Paid upfront: <strong>${formatINR(p.amountCharged)}</strong> &nbsp;|&nbsp;
-             Due on delivery: <strong>${formatINR(p.amountOnDelivery ?? 0)}</strong>
-           </p>`
-        : `<p style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;color:#1e40af;margin:16px 0">
-             Payment received online. Thank you!
-           </p>`
+  let paymentDetail: string
+  if (p.paymentMethod === 'cod') {
+    paymentDetail = `
+      <p style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 16px;color:#9a3412;margin:16px 0">
+        <strong>Cash on Delivery</strong> — please keep <strong>${formatINR(p.total)}</strong> ready at the time of delivery.
+      </p>`
+  } else if (p.paymentMethod === 'cod_upfront' && p.amountCharged !== undefined) {
+    paymentDetail = `
+      <p style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 16px;color:#166534;margin:16px 0">
+        Paid upfront: <strong>${formatINR(p.amountCharged)}</strong> &nbsp;|&nbsp;
+        Due on delivery: <strong>${formatINR(p.amountOnDelivery ?? 0)}</strong>
+      </p>`
+  } else if (p.paymentMethod === 'upi') {
+    paymentDetail = `
+      <p style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:12px 16px;color:#5b21b6;margin:16px 0">
+        <strong>UPI Transfer received.</strong> We are verifying your payment.<br>
+        ${p.utrNumber ? `<span style="font-size:12px;opacity:0.8">UTR / Transaction ID: <strong>${p.utrNumber}</strong></span>` : ''}
+        <br><span style="font-size:12px;opacity:0.8">Your order will be confirmed once payment is verified (usually within a few hours).</span>
+      </p>`
+  } else if (p.paymentMethod === 'partial_cod') {
+    paymentDetail = `
+      <p style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;color:#92400e;margin:16px 0">
+        <strong>Partial Payment:</strong> UPI advance of <strong>${formatINR(p.amountCharged ?? 0)}</strong> received.<br>
+        ${p.utrNumber ? `<span style="font-size:12px;opacity:0.8">UTR / Transaction ID: <strong>${p.utrNumber}</strong></span><br>` : ''}
+        <span style="font-size:12px;opacity:0.8">Remaining <strong>${formatINR(p.amountOnDelivery ?? 0)}</strong> is due at delivery.</span>
+      </p>`
+  } else {
+    paymentDetail = `
+      <p style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;color:#1e40af;margin:16px 0">
+        Payment received online. Thank you!
+      </p>`
+  }
 
   const html = baseLayout(`
     <h2 style="margin:0 0 4px;font-size:22px;color:#111">Order Confirmed!</h2>
@@ -139,7 +164,7 @@ export async function sendNewOrderAlert(p: NewOrderAlertParams) {
       <strong style="display:block;margin-bottom:4px;color:#333">Ship to</strong>
       ${addressText(p.shippingAddress)}
     </div>
-    <a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/orders/${p.orderId}"
+    <a href="${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.hifashions.shop'}/admin/orders/${p.orderId}"
        style="display:inline-block;background:#000;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600">
       View in Admin
     </a>
