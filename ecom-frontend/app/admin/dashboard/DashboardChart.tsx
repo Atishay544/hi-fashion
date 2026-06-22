@@ -339,7 +339,7 @@ export default function DashboardChart(props: DashboardProps & { liveVisitorSlot
       )}
 
       {/* ── KPI cards ── */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <KpiCard label="Revenue" value={fmtShort(rev)} sub={period === 'today' ? 'Today' : `Last ${period}`}
           curr={rev} prev={revP} accent="indigo" />
         <KpiCard label="Orders" value={String(ord)} sub={period === 'today' ? 'Today' : `Last ${period}`}

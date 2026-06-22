@@ -74,26 +74,26 @@ export default async function OrderDetailPage({ params }: PageProps) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <Link href="/admin/orders" className="text-sm text-gray-500 hover:text-gray-700">Orders</Link>
           <span className="text-gray-300">/</span>
-          <h1 className="text-2xl font-bold text-gray-900 font-mono">#{id.slice(0, 8).toUpperCase()}</h1>
-          <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_COLORS[order.status] ?? 'bg-gray-100 text-gray-700'}`}>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 font-mono">#{id.slice(0, 8).toUpperCase()}</h1>
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_COLORS[order.status] ?? 'bg-gray-100 text-gray-700'}`}>
             {order.status}
           </span>
           {pmMethod && PM_LABELS[pmMethod] && (
-            <span className={`ml-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${PM_LABELS[pmMethod].color}`}>
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${PM_LABELS[pmMethod].color}`}>
               {PM_LABELS[pmMethod].label}
             </span>
           )}
           {paymentStatus && PS_LABELS[paymentStatus] && (
-            <span className={`ml-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${PS_LABELS[paymentStatus].color}`}>
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${PS_LABELS[paymentStatus].color}`}>
               {PS_LABELS[paymentStatus].label}
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <InvoiceButton order={{
             ...order,
             customer: { full_name: customer?.full_name ?? undefined, email: customerEmail ?? undefined, phone: customer?.phone ?? undefined },
@@ -108,7 +108,8 @@ export default async function OrderDetailPage({ params }: PageProps) {
             <div className="px-5 py-4 border-b border-gray-100">
               <h2 className="text-base font-semibold text-gray-800">Items</h2>
             </div>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+          <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="text-left px-5 py-3 text-xs text-gray-500 font-medium">Product</th>
@@ -128,6 +129,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
                 ))}
               </tbody>
             </table>
+          </div>
             <div className="px-5 py-4 border-t border-gray-100 space-y-1.5">
               <div className="flex justify-between text-sm text-gray-500">
                 <span>Subtotal</span><span>₹{Number(order.subtotal).toLocaleString('en-IN')}</span>

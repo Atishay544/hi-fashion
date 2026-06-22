@@ -59,10 +59,12 @@ function NavGroup({
   group,
   pathname,
   initialOpen,
+  onNavigate,
 }: {
   group: typeof navGroups[number]
   pathname: string
   initialOpen: boolean
+  onNavigate?: () => void
 }) {
   const hasActive = group.items.some(
     item => pathname === item.href || pathname.startsWith(item.href + '/')
@@ -100,6 +102,7 @@ function NavGroup({
                   <Link
                     key={href}
                     href={href}
+                    onClick={onNavigate}
                     className={`
                       group/item flex items-center gap-2.5 px-3 py-1.75 rounded-lg
                       text-[13px] font-medium transition-all duration-150
@@ -132,7 +135,7 @@ function NavGroup({
   )
 }
 
-export default function AdminNav() {
+export default function AdminNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname()
 
   return (
@@ -150,6 +153,7 @@ export default function AdminNav() {
           group={group}
           pathname={pathname}
           initialOpen={group.defaultOpen}
+          onNavigate={onNavigate}
         />
       ))}
     </nav>

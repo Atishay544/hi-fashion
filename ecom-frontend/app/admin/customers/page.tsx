@@ -94,8 +94,8 @@ export default async function CustomersPage({ searchParams }: PageProps) {
         )}
       </form>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      {/* Desktop table (md+) */}
+      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -161,6 +161,66 @@ export default async function CustomersPage({ searchParams }: PageProps) {
 
         {totalPages > 1 && (
           <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+            <p className="text-sm text-gray-500">Showing {from + 1}–{Math.min(to + 1, count ?? 0)} of {count}</p>
+            <div className="flex gap-2">
+              {page > 1 && (
+                <Link href={`/admin/customers?q=${q}&page=${page - 1}`} className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Previous</Link>
+              )}
+              {page < totalPages && (
+                <Link href={`/admin/customers?q=${q}&page=${page + 1}`} className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Next</Link>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile card list (< md) */}
+      <div className="md:hidden space-y-3">
+        {(!customers || customers.length === 0) && (
+          <div className="bg-white rounded-xl border border-gray-200 py-12 text-center text-gray-400 text-sm">
+            No customers found.
+          </div>
+        )}
+        {customers?.map(customer => {
+          const od    = orderMap.get(customer.id)
+          const email = emailMap.get(customer.id) ?? ''
+          return (
+            <div key={customer.id} className="bg-white rounded-xl border border-gray-200 p-4">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <Link href={`/admin/customers/${customer.id}`} className="font-semibold text-gray-900 hover:text-blue-600 text-sm">
+                  {customer.full_name || <span className="text-gray-400 italic">No name</span>}
+                </Link>
+                <span className="text-xs text-gray-400 shrink-0">
+                  {new Date(customer.created_at).toLocaleDateString('en-IN')}
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                {email && (
+                  <p className="text-xs">
+                    <a href={`mailto:${email}`} className="text-blue-600 hover:underline">{email}</a>
+                  </p>
+                )}
+                {customer.phone && (
+                  <p className="text-xs">
+                    <a href={`tel:${customer.phone}`} className="text-gray-500">{customer.phone}</a>
+                  </p>
+                )}
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-xs text-gray-500">Orders</span>
+                  <span className="text-sm font-semibold text-gray-800">{od?.count ?? 0}</span>
+                </div>
+                {od?.items?.length ? (
+                  <p className="text-xs text-gray-400 truncate">
+                    {od.items.slice(0, 2).join(', ')}
+                    {od.items.length > 2 && ` +${od.items.length - 2} more`}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          )
+        })}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between py-2">
             <p className="text-sm text-gray-500">Showing {from + 1}–{Math.min(to + 1, count ?? 0)} of {count}</p>
             <div className="flex gap-2">
               {page > 1 && (

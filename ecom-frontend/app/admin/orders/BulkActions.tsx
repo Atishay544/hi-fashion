@@ -175,7 +175,8 @@ export default function BulkActions({ initialOrders, statusFilter, searchQuery }
 
   return (
     <>
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      {/* ── Desktop table (md+) ── */}
+      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -269,6 +270,74 @@ export default function BulkActions({ initialOrders, statusFilter, searchQuery }
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* ── Mobile card list (< md) ── */}
+      <div className="md:hidden space-y-3">
+        {displayed.length === 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 py-12 text-center text-gray-400 text-sm">
+            No orders found.
+          </div>
+        )}
+        {displayed.map(order => {
+          const pm = (order.metadata as any)?.payment_method as string | undefined
+          const pmBadge = pm ? PM_BADGES[pm] : null
+          return (
+            <div key={order.id} className={`bg-white rounded-xl border border-gray-200 p-4 ${selected.has(order.id) ? 'border-blue-300 bg-blue-50' : ''}`}>
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(order.id)}
+                    onChange={() => toggleOne(order.id)}
+                    className="w-4 h-4 text-blue-600 rounded shrink-0"
+                  />
+                  <a href={`/admin/orders/${order.id}`} className="font-mono text-blue-600 font-semibold text-sm">
+                    #{order.id.slice(0, 8).toUpperCase()}
+                  </a>
+                </div>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_COLORS[order.status] ?? 'bg-gray-100 text-gray-700'}`}>
+                  {order.status.replace(/_/g, ' ')}
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">Customer</span>
+                  <span className="text-sm text-gray-700 font-medium truncate max-w-45">
+                    {order.customerName ?? <span className="text-gray-400 italic">Unknown</span>}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">Total</span>
+                  <span className="text-sm font-bold text-gray-900">₹{Number(order.total).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">Date</span>
+                  <span className="text-xs text-gray-400">
+                    {new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                </div>
+                {pmBadge && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Payment</span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${pmBadge.cls}`}>{pmBadge.label}</span>
+                  </div>
+                )}
+                {order.payment_status === 'upi_pending' && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">UPI Status</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Unverified</span>
+                  </div>
+                )}
+              </div>
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <a href={`/admin/orders/${order.id}`} className="text-sm text-blue-600 font-semibold hover:underline">
+                  View Order →
+                </a>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {/* Floating bulk actions bar */}
