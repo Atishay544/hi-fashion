@@ -53,17 +53,16 @@ export default function LoginPage() {
   async function handlePasswordAuth() {
     setLoading(true); setError('')
     if (isSignUp) {
-      const { data, error } = await supabase.auth.signUp({
-        email, password,
-        options: {
-          emailRedirectTo: `${location.origin}/auth/callback?next=/account`,
-          data: { full_name: name.trim() },
-        },
+      // Server-side signup → confirmation email sent via Resend (not Supabase)
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, fullName: name.trim() }),
       })
+      const data = await res.json()
       setLoading(false)
-      if (error) return setError(error.message)
-      if (!data.session) { setStep('check-email'); return }
-      router.push('/')
+      if (!res.ok) return setError(data.error ?? 'Sign-up failed. Please try again.')
+      setStep('check-email')
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       setLoading(false)
@@ -72,16 +71,18 @@ export default function LoginPage() {
     }
   }
 
-  // ── Email OTP — send ──────────────────────────────────────────────────────
+  // ── Email OTP — send (via Resend, not Supabase email) ─────────────────────
   async function handleSendEmailOtp() {
     if (!email.trim()) { setError('Enter your email address'); return }
     setLoading(true); setError('')
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: true },
+    const res = await fetch('/api/auth/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
     })
+    const data = await res.json()
     setLoading(false)
-    if (error) return setError(error.message)
+    if (!res.ok) return setError(data.error ?? 'Failed to send code. Please try again.')
     setStep('otp')
     setResendCountdown(60)
     setSuccess(`Code sent to ${email}`)

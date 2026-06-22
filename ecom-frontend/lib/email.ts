@@ -44,6 +44,60 @@ function baseLayout(body: string) {
 </body></html>`
 }
 
+// ─── Auth: OTP Login Code ────────────────────────────────────────────────────
+
+export async function sendOtpEmail({ to, otp }: { to: string; otp: string }) {
+  const html = baseLayout(`
+    <h2 style="margin:0 0 4px;font-size:22px;color:#111">Your Login Code</h2>
+    <p style="margin:0 0 28px;color:#666;font-size:14px">Use this 6-digit code to sign in to Hi Fashion. It expires in <strong>10 minutes</strong>.</p>
+    <div style="text-align:center;margin:8px 0 32px">
+      <div style="display:inline-block;background:#f5f3ff;border:2px solid #ddd6fe;border-radius:16px;padding:20px 48px">
+        <span style="font-size:42px;font-weight:800;letter-spacing:14px;color:#5b21b6;font-family:monospace">${otp}</span>
+      </div>
+    </div>
+    <p style="text-align:center;color:#9ca3af;font-size:12px;margin:0">If you didn't request this, you can safely ignore this email.</p>
+  `)
+
+  const { error } = await getResend().emails.send({
+    from:    FROM,
+    to,
+    subject: `${otp} — your Hi Fashion login code`,
+    html,
+  })
+  if (error) throw new Error(error.message)
+}
+
+// ─── Auth: Sign-up Confirmation ──────────────────────────────────────────────
+
+export async function sendSignupConfirmation({ to, name, confirmLink }: { to: string; name?: string; confirmLink: string }) {
+  const greeting = name ? `Hi ${name},` : 'Hi there,'
+
+  const html = baseLayout(`
+    <h2 style="margin:0 0 4px;font-size:22px;color:#111">Confirm your email</h2>
+    <p style="margin:0 0 24px;color:#666;font-size:14px">${greeting} thanks for creating an account at Hi Fashion!</p>
+    <p style="color:#444;font-size:14px;margin:0 0 24px;line-height:1.6">
+      Click the button below to verify your email address and activate your account.
+    </p>
+    <div style="text-align:center;margin:32px 0">
+      <a href="${confirmLink}"
+         style="display:inline-block;background:#000;color:#fff;padding:14px 36px;border-radius:12px;text-decoration:none;font-size:15px;font-weight:700;letter-spacing:-0.2px">
+        Confirm Email Address
+      </a>
+    </div>
+    <p style="text-align:center;color:#9ca3af;font-size:12px;margin:0">
+      This link expires in 24 hours. If you didn't create an account, ignore this email.
+    </p>
+  `)
+
+  const { error } = await getResend().emails.send({
+    from:    FROM,
+    to,
+    subject: 'Confirm your Hi Fashion account',
+    html,
+  })
+  if (error) throw new Error(error.message)
+}
+
 // ─── Customer: Order Confirmation ────────────────────────────────────────────
 
 type PaymentMethod = 'online' | 'cod' | 'cod_upfront' | 'upi' | 'partial_cod'
