@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useCartStore } from '@/lib/store/cart'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { formatPrice } from '@/lib/utils'
+import { UPI_ID, QR_IMAGE_PATH } from '@/lib/payment-config'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import Script from 'next/script'
@@ -379,14 +380,14 @@ export default function CheckoutPage() {
                 <div className="flex flex-col sm:flex-row items-center gap-6">
                   <div className="bg-white p-3 rounded-xl border border-gray-200 shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/QR.jpeg" alt="UPI QR Code" width={160} height={160} className="w-40 h-40 object-contain" />
+                    <img src={QR_IMAGE_PATH} alt="UPI QR Code" width={160} height={160} className="w-40 h-40 object-contain" />
                   </div>
                   <ol className="space-y-2 text-sm text-gray-700 list-none">
                     <li>1. Open <strong>GPay / PhonePe / Paytm</strong></li>
                     <li>2. Scan QR or pay to UPI ID:</li>
                     <li>
                       <span className={`inline-block font-mono border rounded-lg px-3 py-1.5 font-semibold select-all text-xs ${paymentMethod === 'partial_cod' ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-purple-50 border-purple-200 text-purple-900'}`}>
-                        paytmqr6wi2wl@ptys
+                        {UPI_ID}
                       </span>
                     </li>
                     <li>3. Pay exactly <strong>₹{upiAmount.toFixed(2)}</strong></li>
