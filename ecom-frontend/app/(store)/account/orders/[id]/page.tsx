@@ -8,6 +8,10 @@ import { CheckCircle2, XCircle, CreditCard, Truck, Zap } from 'lucide-react'
 import InvoiceDownload from './InvoiceDownload'
 import GAPurchaseEvent from './GAPurchaseEvent'
 import OrderStatusWatcher from './OrderStatusWatcher'
+import CancelOrderButton from './CancelOrderButton'
+
+// Customer may self-cancel only before dispatch (mirrors the API guard)
+const CANCELLABLE_STATUSES = ['pending', 'confirmed', 'cod_upfront_paid', 'processing']
 
 interface Props {
   params: Promise<{ id: string }>
@@ -105,7 +109,8 @@ export default async function OrderDetailPage({ params, searchParams }: Props) {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {CANCELLABLE_STATUSES.includes(order.status) && <CancelOrderButton orderId={order.id} />}
           <InvoiceDownload order={{ ...order, customer: null }} />
           <Link href="/account/orders" className="text-sm text-gray-500 hover:underline">← All Orders</Link>
         </div>

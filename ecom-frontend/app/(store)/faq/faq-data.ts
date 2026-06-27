@@ -8,7 +8,7 @@ export const FAQS = [
       },
       {
         q: 'Can I change or cancel my order after placing it?',
-        a: "Orders can be cancelled within 1 hour of placement if they haven't been dispatched yet. Go to My Orders → Order Detail → Cancel. For changes after 1 hour, please contact our support team as soon as possible.",
+        a: "Yes — you can cancel an order yourself any time before it's dispatched. Go to My Orders → open the order → Cancel Order. Once an order has shipped it can no longer be cancelled, so please contact support quickly if you need help. If you paid online, our team will process your refund after cancellation.",
       },
       {
         q: "I placed an order but didn't receive a confirmation email. What should I do?",
