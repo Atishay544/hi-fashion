@@ -219,11 +219,11 @@ export default function Header({ categories }: { categories: any[] }) {
               </AnimatePresence>
             </Link>
 
-            {/* Profile */}
+            {/* Profile (desktop only — on mobile it lives inside the hamburger menu) */}
             <button
               onClick={() => user ? setProfileOpen(true) : router.push('/login')}
               aria-label={user ? 'My account' : 'Sign in'}
-              className="flex items-center gap-2 ml-1 min-h-11 transition-all duration-200"
+              className="hidden md:flex items-center gap-2 ml-1 min-h-11 transition-all duration-200"
             >
               {user
                 ? <div className="w-8 h-8 rounded-full bg-foreground hover:bg-primary text-background flex items-center justify-center text-xs font-bold transition-colors duration-200">
@@ -249,6 +249,34 @@ export default function Header({ categories }: { categories: any[] }) {
               className="md:hidden border-t border-border bg-background overflow-hidden"
             >
               <div className="px-4 py-4 space-y-0.5">
+                {/* Profile / Account — moved here from the top bar on mobile */}
+                {user ? (
+                  <button
+                    onClick={() => { setMobileOpen(false); setProfileOpen(true) }}
+                    className="w-full flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-gray-50 transition-colors duration-150"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold shrink-0">
+                      {user.email?.[0]?.toUpperCase() ?? 'U'}
+                    </div>
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="text-sm font-semibold text-gray-900 leading-tight">My Account</p>
+                      <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                    </div>
+                    <ChevronDown size={14} className="-rotate-90 text-gray-300 shrink-0" />
+                  </button>
+                ) : (
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-2.5 py-2.5 px-3 text-sm font-medium text-gray-700 hover:text-black hover:bg-gray-50 rounded-lg transition-colors duration-150"
+                  >
+                    <User size={16} className="text-gray-400 shrink-0" />
+                    Sign in / Register
+                  </Link>
+                )}
+
+                <div className="h-px bg-border my-2" />
+
                 {categories.map(cat => (
                   <MobileCategoryItem
                     key={cat.id}
