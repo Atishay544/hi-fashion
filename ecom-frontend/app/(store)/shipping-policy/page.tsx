@@ -28,8 +28,8 @@ export default function ShippingPolicyPage() {
 
         <section>
           <h2 className="text-xl font-semibold text-gray-900 mb-3">Delivery Timeframes</h2>
-          <div className="overflow-hidden rounded-xl border border-gray-200">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <table className="w-full min-w-136 text-sm">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Location</th>

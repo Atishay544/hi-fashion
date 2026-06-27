@@ -65,7 +65,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
           {topAnnouncement && <AnnouncementBar data={topAnnouncement} />}
           <Header categories={roots} />
         </div>
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 overflow-x-clip">{children}</main>
         <Footer categories={roots} />
         <ChatWidgetLoader />
         <VisitorTracker />

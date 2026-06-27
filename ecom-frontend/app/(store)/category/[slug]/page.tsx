@@ -198,7 +198,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-10">
+        <div className="flex flex-wrap justify-center gap-2 mt-10">
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
             <Link key={p} href={`/category/${slug}?sort=${sort}&page=${p}`}
               className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium transition

@@ -136,7 +136,7 @@ export default async function ProductsPage({ searchParams }: Props) {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex justify-center gap-2 mt-10">
+            <div className="flex flex-wrap justify-center gap-2 mt-10">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
                 <PaginationLink key={p} page={p} current={page} params={params} />
               ))}

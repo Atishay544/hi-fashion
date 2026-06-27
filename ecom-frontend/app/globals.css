@@ -66,6 +66,9 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Prevent any media/element from forcing horizontal scroll on mobile */
+img, video, canvas, svg, iframe { max-width: 100%; }
+
 /* ── Keyframe animations ─────────────────────────────────────────────────── */
 @keyframes slide-in-right {
   from { transform: translateX(100%); }
