@@ -21,6 +21,9 @@ interface Banner {
 export default function HeroCarousel({ banners }: { banners: Banner[] }) {
   const [current, setCurrent] = useState(0)
   const [direction, setDirection] = useState(1)
+  // Hero height auto-matches the real banner artwork ratio (set from the first
+  // image that loads) so it hugs the banner exactly — no top/bottom bars, no crop.
+  const [ratio, setRatio] = useState('2048 / 1143')
   const count = banners.length
 
   const next = useCallback(() => {
@@ -71,10 +74,9 @@ export default function HeroCarousel({ banners }: { banners: Banner[] }) {
   }
 
   return (
-    // Full-bleed, matches the banner artwork ratio (2048 × 1143) via an inline
-    // aspect-ratio (guaranteed to apply) so the whole banner shows proportionally
-    // on every device with no side cropping. max-h caps height on ultra-wide.
-    <section className="relative w-full overflow-hidden max-h-[88vh]" style={{ aspectRatio: '2048 / 1143' }}>
+    // Full-bleed; the container ratio is set from the real banner image so the
+    // hero hugs the artwork exactly on every device — no side crop, no bars.
+    <section className="relative w-full overflow-hidden max-h-[88vh]" style={{ aspectRatio: ratio }}>
 
       <AnimatePresence initial={false} custom={direction} mode="sync">
         <motion.div
@@ -86,7 +88,7 @@ export default function HeroCarousel({ banners }: { banners: Banner[] }) {
           exit="exit"
           className="absolute inset-0"
         >
-          <SlideRenderer slide={slide} />
+          <SlideRenderer slide={slide} onRatio={setRatio} />
         </motion.div>
       </AnimatePresence>
 
@@ -120,20 +122,27 @@ export default function HeroCarousel({ banners }: { banners: Banner[] }) {
 }
 
 // ── Slide renderer ─────────────────────────────────────────────────────────────
-function SlideRenderer({ slide }: { slide: Banner }) {
+function SlideRenderer({ slide, onRatio }: { slide: Banner; onRatio?: (r: string) => void }) {
   const style = slide.display_style ?? 'overlay'
   const bg    = slide.bg_color   ?? '#111827'
   const color = slide.text_color ?? '#ffffff'
   const link  = slide.link_url   ?? '/products'
 
+  // Report the natural W/H of the banner so the hero can hug it exactly
+  const reportRatio = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const t = e.currentTarget
+    if (t.naturalWidth && t.naturalHeight) onRatio?.(`${t.naturalWidth} / ${t.naturalHeight}`)
+  }
+
   // ── Image Only ──────────────────────────────────────────────────────────────
   if (style === 'image_only') {
     return (
-      <Link href={link} className="block relative w-full h-full group bg-neutral-100">
+      <Link href={link} className="block relative w-full h-full group">
         {slide.image_url
           ? <Image src={slide.image_url} alt="banner" fill
               sizes="100vw"
-              className="object-contain"
+              onLoad={reportRatio}
+              className="object-cover"
               priority />
           : <div className="w-full h-full bg-gray-200" />}
       </Link>
@@ -171,6 +180,7 @@ function SlideRenderer({ slide }: { slide: Banner }) {
       {slide.image_url && (
         <Image src={slide.image_url} alt={slide.title ?? 'banner'} fill
           sizes="100vw"
+          onLoad={reportRatio}
           className="object-cover opacity-40"
           priority />
       )}
