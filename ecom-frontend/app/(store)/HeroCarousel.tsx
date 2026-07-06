@@ -47,7 +47,7 @@ export default function HeroCarousel({ banners }: { banners: Banner[] }) {
   // ── Fallback (no banners) ─────────────────────────────────────────────────
   if (count === 0) {
     return (
-      <section className="relative w-full overflow-hidden bg-gray-900 text-white aspect-2048/1143 max-h-200 min-h-60">
+      <section className="relative w-full overflow-hidden bg-gray-900 text-white max-h-[88vh] min-h-60" style={{ aspectRatio: '2048 / 1143' }}>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] from-gray-800 via-gray-900 to-black" />
         <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-6 py-16">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] mb-4 opacity-60">Official Store</p>
@@ -71,10 +71,10 @@ export default function HeroCarousel({ banners }: { banners: Banner[] }) {
   }
 
   return (
-    // Full-bleed, matches the banner artwork ratio (2048 × 1143 ≈ 16:9) so the
-    // whole banner is shown proportionally on every device with no odd cropping.
-    // max-h caps the height on ultra-wide desktops.
-    <section className="relative w-full overflow-hidden aspect-2048/1143 max-h-200">
+    // Full-bleed, matches the banner artwork ratio (2048 × 1143) via an inline
+    // aspect-ratio (guaranteed to apply) so the whole banner shows proportionally
+    // on every device with no side cropping. max-h caps height on ultra-wide.
+    <section className="relative w-full overflow-hidden max-h-[88vh]" style={{ aspectRatio: '2048 / 1143' }}>
 
       <AnimatePresence initial={false} custom={direction} mode="sync">
         <motion.div
@@ -129,11 +129,11 @@ function SlideRenderer({ slide }: { slide: Banner }) {
   // ── Image Only ──────────────────────────────────────────────────────────────
   if (style === 'image_only') {
     return (
-      <Link href={link} className="block relative w-full h-full group">
+      <Link href={link} className="block relative w-full h-full group bg-neutral-100">
         {slide.image_url
           ? <Image src={slide.image_url} alt="banner" fill
               sizes="100vw"
-              className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+              className="object-contain"
               priority />
           : <div className="w-full h-full bg-gray-200" />}
       </Link>
