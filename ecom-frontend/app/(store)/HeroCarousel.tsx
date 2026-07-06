@@ -47,8 +47,7 @@ export default function HeroCarousel({ banners }: { banners: Banner[] }) {
   // ── Fallback (no banners) ─────────────────────────────────────────────────
   if (count === 0) {
     return (
-      <section className="relative w-full overflow-hidden bg-gray-900 text-white"
-        style={{ minHeight: 'clamp(240px, 50vw, 640px)' }}>
+      <section className="relative w-full overflow-hidden bg-gray-900 text-white aspect-2048/1143 max-h-200 min-h-60">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] from-gray-800 via-gray-900 to-black" />
         <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-6 py-16">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] mb-4 opacity-60">Official Store</p>
@@ -72,10 +71,10 @@ export default function HeroCarousel({ banners }: { banners: Banner[] }) {
   }
 
   return (
-    // Full-bleed, fluid height — never crops at any viewport width
-    // clamp: 240px on tiny phones → scales with viewport → caps at 680px on ultra-wide
-    <section className="relative w-full overflow-hidden"
-      style={{ height: 'clamp(240px, 46vw, 680px)' }}>
+    // Full-bleed, matches the banner artwork ratio (2048 × 1143 ≈ 16:9) so the
+    // whole banner is shown proportionally on every device with no odd cropping.
+    // max-h caps the height on ultra-wide desktops.
+    <section className="relative w-full overflow-hidden aspect-2048/1143 max-h-200">
 
       <AnimatePresence initial={false} custom={direction} mode="sync">
         <motion.div

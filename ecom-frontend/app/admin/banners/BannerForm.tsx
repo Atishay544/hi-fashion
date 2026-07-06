@@ -68,6 +68,18 @@ export default function BannerForm() {
   const showColors = style !== 'image_only'
   const isPromoCard = style === 'featured_card'
 
+  // Recommended upload size per position
+  const recommendedSize = isPromoCard ? '1200 × 1200 px (square)' : '2048 × 1143 px (16:9)'
+
+  // Where this banner will actually render, based on style + sort
+  const positionDescription = isPromoCard
+    ? 'Promo Card — the "For Him / For Her" 2-column section. Sort 0 = left card, Sort 1 = right card.'
+    : sortOrder === '0'
+      ? 'Top Hero Carousel — the full-width slideshow at the top of the home page.'
+      : sortOrder === '1'
+        ? 'Deals Strip — the wide promo banner further down the home page.'
+        : `Extra (Sort ${sortOrder}) — not shown in a standard slot. Use Sort 0 for Hero or Sort 1 for the Deals strip.`
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
       <h2 className="text-base font-semibold text-gray-800 mb-4">New Banner</h2>
@@ -89,6 +101,15 @@ export default function BannerForm() {
             <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
           </button>
         ))}
+      </div>
+
+      {/* Position guide — tells the admin exactly where this banner lands + what size to upload */}
+      <div className="mb-5 rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs space-y-1">
+        <p className="font-semibold text-indigo-900">📍 Where this banner appears</p>
+        <p className="text-indigo-700">{positionDescription}</p>
+        <p className="text-indigo-500">
+          Recommended image: <strong className="text-indigo-700">{recommendedSize}</strong>
+        </p>
       </div>
 
       {/* Live preview */}
@@ -170,7 +191,7 @@ export default function BannerForm() {
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
               Banner Image{style === 'overlay' ? <span className="text-red-500 ml-0.5">*</span> : ''}
-              <span className="text-gray-400 font-normal ml-1">(1440 × 480 px recommended · max 5 MB)</span>
+              <span className="text-gray-400 font-normal ml-1">({recommendedSize} · max 5 MB)</span>
             </label>
             <ImageUploader value={images} onChange={setImages} maxImages={1} />
           </div>

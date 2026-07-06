@@ -104,8 +104,10 @@ export default async function HomePage() {
     getAfterFeaturedAnnouncement(),
   ])
 
-  const heroSlides    = banners.filter(b => b.sort_order === 0)
-  const dealBanner    = banners.find(b => b.sort_order === 1) ?? null
+  // Position model: promo cards are matched by style; hero/deals by sort_order.
+  // Exclude featured_card from hero/deals so a promo card never leaks into them.
+  const heroSlides    = banners.filter(b => b.display_style !== 'featured_card' && b.sort_order === 0)
+  const dealBanner    = banners.find(b => b.display_style !== 'featured_card' && b.sort_order === 1) ?? null
   const featuredCards = banners.filter(b => b.display_style === 'featured_card')
 
   const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.hifashions.shop'

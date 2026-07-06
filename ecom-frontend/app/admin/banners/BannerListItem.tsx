@@ -152,9 +152,13 @@ export default function BannerListItem({ banner }: { banner: Banner }) {
       <div className="px-4 py-3 flex items-center justify-between gap-4 bg-gray-50 flex-wrap">
         <div className="flex items-center gap-3 min-w-0 text-xs text-gray-500 flex-wrap">
           <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold text-white ${
-            banner.sort_order === 0 ? 'bg-blue-600' : banner.sort_order === 1 ? 'bg-orange-500' : 'bg-gray-400'
+            banner.display_style === 'featured_card' ? 'bg-purple-600'
+              : banner.sort_order === 0 ? 'bg-blue-600'
+              : banner.sort_order === 1 ? 'bg-orange-500' : 'bg-gray-400'
           }`}>
-            Sort {banner.sort_order} — {banner.sort_order === 0 ? 'Hero Carousel' : banner.sort_order === 1 ? 'Deals Strip' : 'Extra'}
+            {banner.display_style === 'featured_card'
+              ? `Promo Card${banner.sort_order === 0 ? ' (Left)' : banner.sort_order === 1 ? ' (Right)' : ''}`
+              : `Sort ${banner.sort_order} — ${banner.sort_order === 0 ? 'Hero Carousel' : banner.sort_order === 1 ? 'Deals Strip' : 'Extra'}`}
           </span>
           <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full font-medium ${
             banner.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
@@ -227,7 +231,12 @@ export default function BannerListItem({ banner }: { banner: Banner }) {
           {/* Image */}
           {showImage && (
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Banner Image</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Banner Image
+                <span className="text-gray-400 font-normal ml-1">
+                  ({style === 'featured_card' ? '1200 × 1200 px (square)' : '2048 × 1143 px (16:9)'} · max 5 MB)
+                </span>
+              </label>
               <ImageUploader value={images} onChange={setImages} maxImages={1} />
             </div>
           )}
