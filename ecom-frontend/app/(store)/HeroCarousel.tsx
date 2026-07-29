@@ -50,7 +50,7 @@ export default function HeroCarousel({ banners }: { banners: Banner[] }) {
   // ── Fallback (no banners) ─────────────────────────────────────────────────
   if (count === 0) {
     return (
-      <section className="relative w-full overflow-hidden bg-gray-900 text-white max-h-[88vh] min-h-60" style={{ aspectRatio: '2048 / 1143' }}>
+      <section className="relative w-full overflow-hidden bg-gray-900 text-white max-h-[88vh] min-h-[62vw] sm:min-h-60" style={{ aspectRatio: '2048 / 1143' }}>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] from-gray-800 via-gray-900 to-black" />
         <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-6 py-16">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] mb-4 opacity-60">Official Store</p>
@@ -76,7 +76,9 @@ export default function HeroCarousel({ banners }: { banners: Banner[] }) {
   return (
     // Full-bleed; the container ratio is set from the real banner image so the
     // hero hugs the artwork exactly on every device — no side crop, no bars.
-    <section className="relative w-full overflow-hidden max-h-[88vh]" style={{ aspectRatio: ratio }}>
+    // On mobile only, a small min-height floor gives the hero a touch more
+    // presence (slight edge crop via object-cover); sm+ reverts to the exact ratio.
+    <section className="relative w-full overflow-hidden max-h-[88vh] min-h-[62vw] sm:min-h-0" style={{ aspectRatio: ratio }}>
 
       <AnimatePresence initial={false} custom={direction} mode="sync">
         <motion.div
