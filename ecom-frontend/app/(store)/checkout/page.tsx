@@ -230,7 +230,7 @@ export default function CheckoutPage() {
         <div className="grid lg:grid-cols-5 gap-5 lg:gap-8">
 
           {/* ── Left Column ─────────────────────────────────────────────────── */}
-          <div className="lg:col-span-3 space-y-4 sm:space-y-6">
+          <div className="lg:col-span-3 space-y-4 sm:space-y-6 min-w-0">
 
             {/* Sign-in nudge for guests */}
             {!user && (
@@ -417,7 +417,7 @@ export default function CheckoutPage() {
           </div>
 
           {/* ── Right Column: Order Summary ──────────────────────────────────── */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 min-w-0">
             <div className="bg-gray-50 rounded-2xl p-4 sm:p-6 lg:sticky lg:top-24">
               <h2 className="font-bold text-lg mb-4">Order Summary</h2>
               <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">

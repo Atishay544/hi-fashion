@@ -33,7 +33,7 @@ export default function CartPage() {
 
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Items */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-4 min-w-0">
           {items.map(item => (
             <div key={getKey(item)} className="flex gap-4 border rounded-xl p-4">
               <div className="w-20 h-20 shrink-0 relative rounded-lg overflow-hidden bg-gray-100">
@@ -61,8 +61,8 @@ export default function CartPage() {
                   </button>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="font-bold">{formatPrice(item.price * item.quantity)}</p>
+              <div className="text-right shrink-0">
+                <p className="font-bold whitespace-nowrap">{formatPrice(item.price * item.quantity)}</p>
               </div>
             </div>
           ))}

@@ -573,7 +573,7 @@ export default async function ProductDetailPage({ params }: Props) {
           {/* Handcrafted quality badge */}
           <div className="flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
             <Award size={16} className="text-amber-600 shrink-0" />
-            <span className="text-xs text-amber-800 font-medium leading-tight">Handcrafted in India · Premium artisan quality · Every piece is unique</span>
+            <span className="text-xs text-amber-800 font-medium leading-tight">100% Authentic · Quality Checked · Pan-India Delivery</span>
           </div>
 
           {/* Description */}
